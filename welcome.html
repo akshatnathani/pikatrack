@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Welcome to PikaDex! ⚡</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --bg: #0b1220;
+  --surface: #111827;
+  --surface2: #1a2435;
+  --accent: #facc15;
+  --accent-glow: rgba(250, 204, 21, 0.15);
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --dim: #64748b;
+  --border: rgba(255, 255, 255, 0.08);
+  --green: #10b981;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Background grid styling */
+body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.welcome-card {
+  width: 100%;
+  max-width: 500px;
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(17, 24, 39, 0.95) 100%);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 20px rgba(250, 204, 21, 0.05);
+  border-radius: 16px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.welcome-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), #ffedd5, var(--accent));
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.logo-orb {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--surface2) 0%, var(--bg) 100%);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.logo-svg {
+  width: 56px;
+  height: 56px;
+  filter: drop-shadow(0 0 4px rgba(250,204,21,0.3));
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--accent), #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+input {
+  background-color: rgba(11, 18, 32, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.2s;
+}
+
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  background-color: var(--surface2);
+}
+
+.btn-submit {
+  width: 100%;
+  height: 46px;
+  background: linear-gradient(135deg, var(--accent), #d97706);
+  color: #0b1220;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(250,204,21,0.25);
+  margin-top: 10px;
+}
+
+.btn-submit:hover {
+  background: linear-gradient(135deg, #fef08a, var(--accent));
+  box-shadow: 0 6px 18px rgba(250,204,21,0.4);
+  transform: translateY(-1px);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+/* Success View */
+.success-view {
+  display: none;
+  text-align: center;
+  padding: 20px 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: bounce 1s ease infinite alternate;
+}
+
+@keyframes bounce {
+  to { transform: translateY(-8px); }
+}
+
+.success-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--green);
+  margin-bottom: 12px;
+}
+
+.success-desc {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.pin-hint {
+  background-color: var(--surface2);
+  border: 1px dashed var(--border);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="welcome-card" id="card">
+  
+  <!-- ONBOARDING FORM VIEW -->
+  <div id="form-view">
+    <div class="header">
+      <div class="logo-orb">
+        <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="28,38 18,10 38,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
+          <polygon points="72,38 82,10 62,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
+          <rect x="24" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(-15,28,18)"/>
+          <rect x="68" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(15,72,18)"/>
+          <ellipse cx="50" cy="53" rx="26" ry="24" fill="#FFD700"/>
+          <circle cx="38" cy="47" r="6" fill="#fff"/><circle cx="62" cy="47" r="6" fill="#fff"/>
+          <circle cx="39.5" cy="48" r="3.5" fill="#1a1a1a"/><circle cx="63.5" cy="48" r="3.5" fill="#1a1a1a"/>
+          <circle cx="41" cy="46.5" r="1.2" fill="#fff"/><circle cx="64.5" cy="46.5" r="1.2" fill="#fff"/>
+          <ellipse cx="36" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
+          <ellipse cx="64" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
+          <path d="M44 61 Q50 66 56 61" stroke="#c8a000" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <ellipse cx="50" cy="74" rx="16" ry="7" fill="#c8a000"/>
+          <path d="M60 71 L82 56 L74 55 L84 42 L68 47" fill="#FFD700" stroke="#c8a000" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1>Welcome to PikaDex! ⚡</h1>
+      <span class="subtitle">Set up your Pokémon Productivity Companion</span>
+    </div>
+
+    <form id="setup-form">
+      <div class="form-group">
+        <label for="trainer-name">Trainer Name</label>
+        <input type="text" id="trainer-name" placeholder="e.g. Red" required value="Red"/>
+      </div>
+      
+      <div class="form-group">
+        <label for="leetcode-username">LeetCode Username</label>
+        <input type="text" id="leetcode-username" placeholder="e.g. leetcode_ninja"/>
+      </div>
+
+      <div class="form-group">
+        <label for="github-username">GitHub Username</label>
+        <input type="text" id="github-username" placeholder="e.g. github_coder"/>
+      </div>
+
+      <div class="form-group">
+        <label for="codeforces-handle">Codeforces Handle</label>
+        <input type="text" id="codeforces-handle" placeholder="e.g. handle"/>
+      </div>
+
+      <div class="form-group">
+        <label for="codechef-handle">CodeChef Handle</label>
+        <input type="text" id="codechef-handle" placeholder="e.g. handle"/>
+      </div>
+
+      <div class="form-group">
+        <label for="hackerrank-username">HackerRank Username</label>
+        <input type="text" id="hackerrank-username" placeholder="e.g. username"/>
+      </div>
+
+      <button type="submit" class="btn-submit" id="btn-save">Get Started ⚡</button>
+    </form>
+  </div>
+
+  <!-- SUCCESS STATE VIEW -->
+  <div id="success-view" class="success-view">
+    <div class="success-icon">⚡</div>
+    <div class="success-title">Onboarding Complete!</div>
+    <div class="success-desc">
+      Hey <span id="trainer-display-name" style="color: var(--accent); font-weight: bold;">Trainer</span>, your PikaDex configuration has been successfully saved. We have scheduled an initial background sync for LeetCode and GitHub metrics.
+    </div>
+    <div class="pin-hint">
+      🧩 Click the Extensions puzzle icon in Chrome and pin <b>PikaDex</b> for quick access!
+    </div>
+  </div>
+
+</div>
+
+<script src="welcome.js"></script>
+</body>
+</html>
