@@ -16,6 +16,7 @@ const GYM_BADGES = [
 
 // ── HELPERS ──────────────────────────────────────────────────
 const fmtMs = ms => { const m=Math.round(ms/60000); return m<60 ? m+'m' : Math.floor(m/60)+'h '+(m%60)+'m'; };
+const fmtMinutes = minutes => Math.round(Number(minutes) || 0) + 'm';
 const todayStr = () => new Date().toDateString();
 const ts = sessions => (sessions||[]).filter(s=>s.date===todayStr());
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -59,6 +60,55 @@ function calcScore(t, todaySess, data) {
   );
 
   return Math.min(100, Math.max(0, finalScore));
+}
+
+function getNextAction(t, todaySess, data) {
+  const focusMins = Math.round(todaySess.reduce((a, s) => a + s.durationMs, 0) / 60000);
+  const vids = (data?.videos || []).filter(v => v.date === todayStr());
+  const eduCount = vids.filter(v => v.educational).length;
+  const entCount = vids.length - eduCount;
+  if (focusMins < 25) return 'Start a 25m focus block';
+  if ((t.leetcodeTodaySolved || 0) < 1) return 'Solve one coding problem';
+  if ((t.githubTodayCommits || 0) < 1) return 'Ship one small commit';
+  if (entCount > eduCount && entCount > 0) return 'Swap next video for learning';
+  return 'Protect the streak';
+}
+
+function renderFocusDeck(data) {
+  const t = data.trainer || {};
+  const todaySess = ts(data.sessions);
+  const focusMs = todaySess.reduce((a, s) => a + s.durationMs, 0);
+  const focusMins = Math.round(focusMs / 60000);
+  const focusGoalMins = 240;
+  const progress = Math.min(100, Math.round((focusMins / focusGoalMins) * 100));
+  const active = todaySess.find(s => s.inProgress);
+  const deckMins = document.getElementById('deck-focus-mins');
+  const deckProgress = document.getElementById('deck-focus-progress');
+  const currentSite = document.getElementById('deck-current-site');
+  const nextAction = document.getElementById('deck-next-action');
+  const questFocus = document.getElementById('quest-focus');
+  const questCode = document.getElementById('quest-code');
+  const questBalance = document.getElementById('quest-balance');
+
+  if (deckMins) deckMins.textContent = fmtMs(focusMs);
+  if (deckProgress) deckProgress.style.width = progress + '%';
+  if (currentSite) currentSite.textContent = t.trackingPaused ? 'Paused' : (active ? active.domain : 'Ready');
+  if (nextAction) nextAction.textContent = t.trackingPaused ? 'Resume tracking when ready' : getNextAction(t, todaySess, data);
+  if (questFocus) {
+    questFocus.textContent = `Focus ${Math.min(25, focusMins)}/25m`;
+    questFocus.classList.toggle('done', focusMins >= 25);
+  }
+  if (questCode) {
+    const codeCount = Math.max(t.leetcodeTodaySolved || 0, t.githubTodayCommits || 0);
+    questCode.textContent = `Code ${Math.min(1, codeCount)}/1`;
+    questCode.classList.toggle('done', codeCount >= 1);
+  }
+  if (questBalance) {
+    const vids = (data.videos || []).filter(v => v.date === todayStr());
+    const entCount = vids.filter(v => !v.educational).length;
+    questBalance.textContent = entCount > 2 ? 'Balance media' : 'Balance ready';
+    questBalance.classList.toggle('warn', entCount > 2);
+  }
 }
 
 // Evolution based on TODAY's focus hours
@@ -462,8 +512,8 @@ function renderOak(data) {
     ['GitHub commits',   (t.githubTodayCommits||0)+' today'],
     ['ChatGPT messages',  (t.chatgptTodayCount||0)+' messages'],
     ['Focus streak',     (t.streak||0)+' days 🔥'],
-    ['Educational Watch', (t.educationalVideoMinutes||0)+'m'],
-    ['Entertainment Watch',(t.entertainmentVideoMinutes||0)+'m']
+    ['Educational Watch', fmtMinutes(t.educationalVideoMinutes)],
+    ['Entertainment Watch', fmtMinutes(t.entertainmentVideoMinutes)]
   ];
   document.getElementById('oak-stats').innerHTML = rows.map(([k,v])=>`
     <div class="oak-stat"><span class="oak-k">${k}</span><span class="oak-v">${v}</span></div>`).join('');
@@ -471,7 +521,10 @@ function renderOak(data) {
 
 async function generateOak() {
   const key = document.getElementById('api-key').value.trim();
-  if (!key) { alert('Paste your Anthropic API key (sk-ant-...) in Settings (⚙️ in Header)'); return; }
+  if (!key) {
+    document.getElementById('oak-result').innerHTML = `<div class="oak-result oak-err">Add an Anthropic API key in Settings first, then Professor Oak can write your report.</div>`;
+    return;
+  }
   document.getElementById('oak-btn').disabled=true;
   document.getElementById('oak-loading').style.display='block';
   document.getElementById('oak-result').innerHTML='';
@@ -549,25 +602,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Settings handles
   const nameInput = document.getElementById('trainer-name');
+  const partnerInput = document.getElementById('partner-pokemon');
   const lcInput = document.getElementById('leetcode-username');
   const ghInput = document.getElementById('github-username');
   const cfInput = document.getElementById('codeforces-handle');
   const ccInput = document.getElementById('codechef-handle');
   const hrInput = document.getElementById('hackerrank-username');
+  const trackingPausedInput = document.getElementById('tracking-paused');
   const syncBtn = document.getElementById('sync-now-btn');
   const syncStatus = document.getElementById('sync-status');
   const syncHeaderBtn = document.getElementById('sync-header-btn');
+  const exportBtn = document.getElementById('export-data-btn');
+  const exportStatus = document.getElementById('export-status');
 
   // Load handles and populate inputs
   chrome.runtime.sendMessage({type: 'GET_DATA'}, data => {
     if (data && data.trainer) {
       const t = data.trainer;
       if (nameInput && t.trainerName) nameInput.value = t.trainerName;
+      if (partnerInput) partnerInput.value = t.partnerPokemon || 'pikachu';
       if (lcInput && t.leetcodeUsername) lcInput.value = t.leetcodeUsername;
       if (ghInput && t.githubUsername) ghInput.value = t.githubUsername;
       if (cfInput && t.codeforcesHandle) cfInput.value = t.codeforcesHandle;
       if (ccInput && t.codechefHandle) ccInput.value = t.codechefHandle;
       if (hrInput && t.hackerrankUsername) hrInput.value = t.hackerrankUsername;
+      if (trackingPausedInput) trackingPausedInput.checked = Boolean(t.trackingPaused);
     }
   });
 
@@ -575,11 +634,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const saveFields = () => {
     const fields = {
       trainerName: nameInput ? nameInput.value.trim() : 'Trainer',
+      partnerPokemon: partnerInput ? partnerInput.value : 'pikachu',
       leetcodeUsername: lcInput ? lcInput.value.trim() : '',
       githubUsername: ghInput ? ghInput.value.trim() : '',
       codeforcesHandle: cfInput ? cfInput.value.trim() : '',
       codechefHandle: ccInput ? ccInput.value.trim() : '',
       hackerrankUsername: hrInput ? hrInput.value.trim() : '',
+      trackingPaused: trackingPausedInput ? trackingPausedInput.checked : false,
       onboarded: true
     };
     chrome.runtime.sendMessage({type: 'UPDATE_PROFILE', fields}, () => {
@@ -587,6 +648,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       chrome.runtime.sendMessage({type: 'GET_DATA'}, refreshData => {
         if (refreshData) {
           renderHeader(refreshData);
+          renderFocusDeck(refreshData);
           renderCaught(refreshData);
           renderRoute(refreshData);
           renderBattles(refreshData);
@@ -597,7 +659,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   };
 
-  [nameInput, lcInput, ghInput, cfInput, ccInput, hrInput].forEach(inp => {
+  [nameInput, partnerInput, lcInput, ghInput, cfInput, ccInput, hrInput, trackingPausedInput].forEach(inp => {
     if (inp) inp.addEventListener('change', saveFields);
   });
 
@@ -613,12 +675,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (indicatorBtn) indicatorBtn.classList.remove('spinning');
       if (res && res.success) {
         if (syncStatus) {
-          syncStatus.textContent = 'Sync Complete! ' + (res.xpEarned > 0 ? `+${res.xpEarned} XP!` : 'Up to date.');
-          syncStatus.style.color = '#10b981';
+          const warnings = res.syncErrors || [];
+          if (warnings.length) {
+            syncStatus.textContent = 'Sync finished with warnings: ' + warnings.join(' | ');
+            syncStatus.style.color = '#f59e0b';
+          } else if (res.cachedProviders?.length) {
+            syncStatus.textContent = 'Sync used recent data for ' + res.cachedProviders.join(', ') + '.';
+            syncStatus.style.color = 'var(--muted)';
+          } else {
+            syncStatus.textContent = 'Sync Complete! ' + (res.xpEarned > 0 ? `+${res.xpEarned} XP!` : 'Up to date.');
+            syncStatus.style.color = '#10b981';
+          }
         }
         chrome.runtime.sendMessage({type: 'GET_DATA'}, refreshData => {
           if (refreshData) {
             renderHeader(refreshData);
+            renderFocusDeck(refreshData);
             renderCaught(refreshData);
             renderRoute(refreshData);
             renderBattles(refreshData);
@@ -631,11 +703,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
           syncStatus.textContent = 'Sync Failed: ' + (res?.error || 'Unknown error');
           syncStatus.style.color = 'var(--red-txt)';
         }
-        alert('Sync Failed: ' + (res?.error || 'Unknown error'));
       }
       setTimeout(() => {
         if (syncStatus) syncStatus.style.display = 'none';
-      }, 5000);
+      }, res?.syncErrors?.length ? 10000 : 5000);
     });
   };
 
@@ -645,6 +716,52 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   if (syncHeaderBtn) {
     syncHeaderBtn.addEventListener('click', () => triggerSync(syncHeaderBtn));
+  }
+
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      exportBtn.disabled = true;
+      if (exportStatus) {
+        exportStatus.style.display = 'block';
+        exportStatus.style.color = 'var(--muted)';
+        exportStatus.textContent = 'Preparing export...';
+      }
+      chrome.runtime.sendMessage({type: 'EXPORT_DATA'}, res => {
+        exportBtn.disabled = false;
+        if (!res?.success) {
+          if (exportStatus) {
+            exportStatus.style.color = 'var(--red-txt)';
+            exportStatus.textContent = 'Export failed: ' + (res?.error || 'Unknown error');
+          }
+          return;
+        }
+
+        const payload = {
+          exportedAt: res.exportedAt,
+          schemaVersion: res.schemaVersion,
+          trainer: res.trainer,
+          sessions: res.sessions || [],
+          videos: res.videos || [],
+          battles: res.battles || [],
+          site_stats: res.site_stats || []
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pikadex-export-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        if (exportStatus) {
+          exportStatus.style.color = '#10b981';
+          exportStatus.textContent = `Exported ${payload.sessions.length} sessions, ${payload.videos.length} videos, ${payload.battles.length} battles.`;
+          setTimeout(() => { exportStatus.style.display = 'none'; }, 6000);
+        }
+      });
+    });
   }
 
   // Click handler for caught list to expand/collapse details
@@ -663,7 +780,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   chrome.runtime.sendMessage({type:'GET_DATA'}, data=>{
-    if (!data) { console.error('PikaDex: no data from background'); return; }
+    if (!data) { console.warn('PikaDex: no data from background'); return; }
     
     const t = data.trainer || {};
     const shell = document.querySelector('.shell');
@@ -679,6 +796,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
 
     renderHeader(data);
+    renderFocusDeck(data);
     renderCaught(data);
     renderRoute(data);
     renderBattles(data);
@@ -690,6 +808,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       chrome.runtime.sendMessage({type:'GET_DATA'}, refreshData => {
         if (refreshData && refreshData.trainer && refreshData.trainer.onboarded) {
           renderHeader(refreshData);
+          renderFocusDeck(refreshData);
           renderCaught(refreshData);
           renderRoute(refreshData);
           renderBattles(refreshData);

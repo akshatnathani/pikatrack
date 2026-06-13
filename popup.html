@@ -1432,7 +1432,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.key-row input {
+.key-row input,
+.key-row select {
   background-color: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -1442,15 +1443,581 @@ body {
   outline: none;
   font-family: monospace;
 }
-.key-row input:focus {
+.key-row input:focus,
+.key-row select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 6px var(--accent-glow);
+}
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.setting-toggle span {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.setting-toggle small {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.setting-toggle input {
+  width: 42px;
+  height: 22px;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+.settings-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+.secondary-btn {
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface2);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.secondary-btn:hover {
+  border-color: var(--border-focus);
+  background: #fff7dc;
 }
 .settings-tip {
   font-size: 9px;
   color: var(--dim);
   margin-top: 10px;
   line-height: 1.4;
+}
+
+/* Fresh dashboard skin */
+:root {
+  --bg: #eef4f2;
+  --surface: #ffffff;
+  --surface2: #f4f7f6;
+  --ink: #1d252c;
+  --text: #1d252c;
+  --muted: #64706d;
+  --dim: #8a9692;
+  --border: rgba(29, 37, 44, 0.1);
+  --border-focus: rgba(244, 180, 0, 0.38);
+  --accent: #f4b400;
+  --accent-glow: rgba(244, 180, 0, 0.18);
+  --green: #25a46f;
+  --green-bg: rgba(37, 164, 111, 0.12);
+  --red: #dd4b4b;
+  --red-bg: rgba(221, 75, 75, 0.11);
+  --red-txt: #c93b3b;
+  --blue: #3166d4;
+  --blue-bg: rgba(49, 102, 212, 0.1);
+  --purple: #7c5cc4;
+  --purple-bg: rgba(124, 92, 196, 0.1);
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+.shell {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.88), rgba(238,244,242,.98)),
+    var(--bg);
+}
+.header {
+  height: 56px;
+  padding: 0 14px;
+  background: rgba(255,255,255,.94);
+  border-bottom: 1px solid var(--border);
+}
+.pokedex-eye {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: #1d252c;
+  border: 0;
+  box-shadow: none;
+  animation: none;
+}
+.pokedex-eye::after {
+  top: 6px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+}
+.header-title {
+  color: var(--ink);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 16px;
+}
+.header-subtitle {
+  color: var(--muted);
+}
+.header-lvl {
+  color: var(--ink);
+}
+.settings-trigger {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface2);
+  color: var(--ink);
+  font-size: 14px;
+}
+.settings-trigger:hover {
+  background: #fff7dc;
+  color: #7a5520;
+  transform: translateY(-1px);
+}
+.trainer-hero {
+  height: 132px;
+  margin: 10px 10px 0;
+  padding: 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbfa 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(29,37,44,.08);
+}
+.sprite-container {
+  width: 76px;
+  height: 76px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  animation: floatOrb 4s ease-in-out infinite;
+}
+.sprite-ring {
+  display: none;
+}
+.sprite-svg {
+  width: 76px;
+  height: 76px;
+  filter: drop-shadow(0 8px 10px rgba(29,37,44,.18));
+}
+.trainer-meta-title {
+  color: var(--ink);
+  font-size: 17px;
+}
+.trainer-meta-desc {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.score-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #1d252c;
+  border: 0;
+  box-shadow: none;
+}
+.score-badge::before {
+  display: none;
+}
+.score-value {
+  color: var(--accent);
+  text-shadow: none;
+}
+.score-label {
+  color: rgba(255,255,255,.72);
+}
+.xp-title,
+.xp-numbers {
+  color: var(--ink);
+}
+.xp-progress {
+  height: 7px;
+  background: #dfe8e5;
+  border: 0;
+  border-radius: 999px;
+}
+.xp-progress-bar {
+  background: linear-gradient(90deg, var(--green), var(--accent));
+  box-shadow: none;
+  border-radius: 999px;
+}
+.stats-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 10px;
+  background: transparent;
+  border: 0;
+}
+.stat-widget {
+  min-height: 52px;
+  padding: 8px 6px;
+  background: rgba(255,255,255,.86);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.stat-widget:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+.stat-header {
+  color: var(--muted);
+}
+.stat-val {
+  color: var(--ink);
+}
+.stat-val.highlight {
+  color: var(--green);
+  text-shadow: none;
+}
+.stat-label {
+  color: var(--muted);
+}
+.evo-tracker {
+  height: 44px;
+  margin: 0 10px 8px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  gap: 7px;
+}
+.evo-line {
+  display: none;
+}
+.evo-stage {
+  flex: 1;
+  min-width: 0;
+  border-radius: 12px;
+  background: rgba(255,255,255,.78);
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+}
+.evo-stage.active {
+  background: #fff7dc;
+  border-color: var(--border-focus);
+  box-shadow: none;
+}
+.evo-stage.dim {
+  opacity: .62;
+}
+.evo-stage-name {
+  color: var(--ink);
+}
+.evo-stage.active .evo-stage-name {
+  color: #7a5520;
+}
+.evo-stage-req {
+  color: var(--muted);
+}
+.sections {
+  background: transparent;
+}
+.sec {
+  padding: 0 10px 12px;
+}
+.sec-title-bar {
+  margin: 4px 0 9px;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+.sec-title-bar::after {
+  background: var(--border);
+}
+.focus-deck {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.deck-main,
+.deck-side {
+  border-radius: 18px;
+}
+.deck-main {
+  padding: 14px;
+  background: #1d252c;
+  color: #fff;
+  min-height: 118px;
+}
+.deck-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255,255,255,.68);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.deck-value {
+  margin-top: 8px;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 900;
+  color: #fff;
+}
+.deck-label {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: rgba(255,255,255,.7);
+}
+.deck-progress {
+  margin-top: 14px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.16);
+  overflow: hidden;
+}
+#deck-focus-progress {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4ade80, #f4b400);
+  transition: width .45s ease;
+}
+.deck-side {
+  display: grid;
+  gap: 8px;
+}
+.deck-mini {
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.9);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+.deck-mini-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.deck-mini-value {
+  display: block;
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quest-row {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.quest-pill {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.82);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quest-pill.done {
+  background: var(--green-bg);
+  color: #16784f;
+  border-color: rgba(37,164,111,.25);
+}
+.quest-pill.warn {
+  background: var(--red-bg);
+  color: var(--red-txt);
+}
+.caught-content,
+.battles-list,
+.yt-list {
+  gap: 8px;
+}
+.poke-card,
+.usage-panel,
+.yt-item,
+.yt-split-container,
+.route-stop,
+.battle-row,
+.gym-b,
+.gh-panel,
+.analytics-card,
+.terminal-card,
+.empty {
+  background: rgba(255,255,255,.9);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 22px rgba(29,37,44,.055);
+}
+.poke-card {
+  height: 54px;
+  border-radius: 16px;
+}
+.poke-card:hover,
+.poke-card.expanded,
+.yt-item-link:hover .yt-item,
+.route-stop:hover,
+.battle-row:hover {
+  background: #fff;
+  border-color: rgba(29,37,44,.18);
+}
+.poke-icon {
+  border-radius: 12px;
+}
+.poke-name,
+.rt-site,
+.b-site,
+.ghr-name,
+.et,
+.oak-v {
+  color: var(--ink);
+}
+.poke-time,
+.rt-dur,
+.yt-meta,
+.es,
+.ghr-sub,
+.oak-k {
+  color: var(--muted);
+}
+.poke-details {
+  background: #fff;
+  border-color: rgba(29,37,44,.18);
+}
+.usage-panel {
+  border-radius: 18px;
+}
+.donut-inner {
+  background: #fff;
+}
+.donut-inner-val {
+  color: var(--ink);
+}
+.route-list-container::before {
+  background: rgba(29,37,44,.12);
+}
+.route-stop {
+  height: 34px;
+  border-radius: 14px;
+}
+.battle-row {
+  height: 38px;
+  border-radius: 14px;
+}
+.gym-grid {
+  gap: 9px;
+}
+.gym-b {
+  border-radius: 16px;
+}
+.gym-b.won {
+  background: #fff7dc;
+  border-color: var(--border-focus);
+  box-shadow: none;
+}
+.gym-b.locked {
+  opacity: .58;
+}
+.gh-panel {
+  border-radius: 18px;
+}
+#oak.sec.active {
+  padding-bottom: 0;
+}
+.analytics-card {
+  background: rgba(255,255,255,.92);
+  border-radius: 18px;
+}
+.oak-av {
+  background: var(--blue-bg);
+  border-radius: 12px;
+}
+.terminal-card {
+  background: #17211f;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.terminal-header {
+  background: #101917;
+  border-bottom-color: rgba(255,255,255,.08);
+}
+.terminal-body {
+  color: #d8f3e8;
+}
+.oak-result {
+  color: #bcead7;
+}
+.gen-btn {
+  height: 42px;
+  border-radius: 14px;
+  background: #1d252c;
+  box-shadow: none;
+}
+.gen-btn:hover {
+  background: #2a353d;
+  box-shadow: none;
+}
+.nav {
+  height: 56px;
+  margin: 0 10px 10px;
+  background: rgba(255,255,255,.9);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.nav-btn {
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.nav-btn.active {
+  color: var(--ink);
+  background: #fff7dc;
+}
+.nav-btn.active::after {
+  left: 34%;
+  right: 34%;
+  bottom: 6px;
+  background: var(--accent);
+  box-shadow: none;
+}
+.bottom-bar {
+  display: none;
+}
+.modal {
+  background: rgba(29,37,44,.42);
+}
+.modal-content {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(29,37,44,.22);
+}
+.modal-header {
+  background: var(--surface2);
+}
+.modal-header h3 {
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.key-row input,
+.key-row select {
+  background: var(--surface2);
+  border-color: var(--border);
+  color: var(--ink);
+  border-radius: 12px;
 }
 </style>
 </head>
@@ -1480,20 +2047,27 @@ body {
     <div class="trainer-main">
       <div class="sprite-container" id="home-orb">
         <div class="sprite-ring"></div>
-        <svg id="orb-svg" class="sprite-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="28,38 18,10 38,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-          <polygon points="72,38 82,10 62,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-          <rect x="24" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(-15,28,18)"/>
-          <rect x="68" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(15,72,18)"/>
-          <ellipse cx="50" cy="53" rx="26" ry="24" fill="#FFD700"/>
-          <circle cx="38" cy="47" r="6" fill="#fff"/><circle cx="62" cy="47" r="6" fill="#fff"/>
-          <circle cx="39.5" cy="48" r="3.5" fill="#1a1a1a"/><circle cx="63.5" cy="48" r="3.5" fill="#1a1a1a"/>
-          <circle cx="41" cy="46.5" r="1.2" fill="#fff"/><circle cx="65" cy="46.5" r="1.2" fill="#fff"/>
-          <ellipse cx="36" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
-          <ellipse cx="64" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
-          <path d="M44 61 Q50 66 56 61" stroke="#c8a000" stroke-width="2" fill="none" stroke-linecap="round"/>
-          <ellipse cx="50" cy="74" rx="16" ry="7" fill="#c8a000"/>
-          <path d="M60 71 L82 56 L74 55 L84 42 L68 47" fill="#FFD700" stroke="#c8a000" stroke-width="1.5" stroke-linejoin="round"/>
+        <svg id="orb-svg" class="sprite-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="Sitting Pikachu">
+          <path d="M30 32 L18 6 L43 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M90 32 L102 6 L77 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M23 10 L18 6 L27 26 Z" fill="#2c211b"/>
+          <path d="M97 10 L102 6 L93 26 Z" fill="#2c211b"/>
+          <ellipse cx="60" cy="55" rx="38" ry="34" fill="#ffd94a" stroke="#7a5520" stroke-width="3"/>
+          <ellipse cx="60" cy="82" rx="34" ry="25" fill="#f8c83e" stroke="#7a5520" stroke-width="3"/>
+          <ellipse cx="39" cy="58" rx="8" ry="7" fill="#1e1713"/>
+          <ellipse cx="81" cy="58" rx="8" ry="7" fill="#1e1713"/>
+          <circle cx="42" cy="55" r="2.5" fill="#fff7d6"/>
+          <circle cx="84" cy="55" r="2.5" fill="#fff7d6"/>
+          <ellipse cx="31" cy="70" rx="9" ry="6" fill="#ff6f75"/>
+          <ellipse cx="89" cy="70" rx="9" ry="6" fill="#ff6f75"/>
+          <path d="M56 67 L60 71 L64 67" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M52 75 Q60 81 68 75" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M30 87 Q16 91 18 104 Q36 105 43 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M90 87 Q104 91 102 104 Q84 105 77 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M42 101 Q31 112 47 114 Q58 113 56 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
+          <path d="M78 101 Q89 112 73 114 Q62 113 64 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
+          <path d="M88 82 L111 69 L100 67 L113 53 L94 60" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
+          <ellipse cx="60" cy="115" rx="37" ry="5" fill="rgba(30,23,19,.2)"/>
         </svg>
       </div>
       <div class="trainer-meta">
@@ -1587,6 +2161,29 @@ body {
     <!-- CAUGHT TAB -->
     <div id="caught" class="sec active">
       <div class="sec-title-bar">Caught Today</div>
+      <div class="focus-deck">
+        <div class="deck-main">
+          <div class="deck-kicker">Today</div>
+          <div class="deck-value" id="deck-focus-mins">0m</div>
+          <div class="deck-label">focused of 4h goal</div>
+          <div class="deck-progress"><div id="deck-focus-progress"></div></div>
+        </div>
+        <div class="deck-side">
+          <div class="deck-mini">
+            <span class="deck-mini-label">Now</span>
+            <span class="deck-mini-value" id="deck-current-site">Idle</span>
+          </div>
+          <div class="deck-mini">
+            <span class="deck-mini-label">Next</span>
+            <span class="deck-mini-value" id="deck-next-action">Start a 25m focus block</span>
+          </div>
+        </div>
+      </div>
+      <div class="quest-row">
+        <div class="quest-pill" id="quest-focus">Focus 0/25m</div>
+        <div class="quest-pill" id="quest-code">Code 0/1</div>
+        <div class="quest-pill" id="quest-balance">Balance ready</div>
+      </div>
       <div id="caught-list" class="caught-content"></div>
       
       <!-- Usage Donut Chart Panel -->
@@ -1729,6 +2326,21 @@ body {
       </div>
 
       <div class="key-row">
+        <label for="partner-pokemon">Partner Pokemon</label>
+        <select id="partner-pokemon" disabled title="More partners are planned after v1.">
+          <option value="pikachu">Pikachu - v1 buddy</option>
+        </select>
+      </div>
+
+      <label class="setting-toggle" for="tracking-paused">
+        <span>
+          Tracking Paused
+          <small>Keep the companion visible, but stop saving page, video, and focus activity.</small>
+        </span>
+        <input type="checkbox" id="tracking-paused"/>
+      </label>
+
+      <div class="key-row">
         <label for="leetcode-username">LeetCode Username</label>
         <input type="text" id="leetcode-username" placeholder="e.g. username"/>
       </div>
@@ -1756,8 +2368,13 @@ body {
       <button id="sync-now-btn" class="gen-btn" style="margin-top: 6px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 6px rgba(16,185,129,0.2);">🔄 Sync Accounts Now</button>
       <div id="sync-status" style="font-size: 10px; text-align: center; color: #10b981; margin-top: 4px; display: none; font-weight: bold;">Syncing...</div>
 
+      <div class="settings-actions">
+        <button id="export-data-btn" class="secondary-btn">Export All Data</button>
+        <div id="export-status" style="font-size: 10px; text-align: center; color: var(--muted); display: none; font-weight: bold;"></div>
+      </div>
+
       <div class="settings-tip">
-        Your credentials and API keys are saved locally in extension storage and never leave your machine.
+        Profile handles and the Oak API key are stored locally. The key is only sent to Anthropic when you generate a report.
       </div>
     </div>
   </div>
