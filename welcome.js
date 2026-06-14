@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
       chrome.runtime.sendMessage({ type: 'UPDATE_PROFILE', fields }, () => {
-        chrome.runtime.sendMessage({ type: 'SYNC_ACCOUNTS' }, () => {
+        chrome.runtime.sendMessage({ type: 'SYNC_ACCOUNTS', force: true }, () => {
           displayName.textContent = fields.trainerName;
           formView.style.display = 'none';
           successView.style.display = 'block';

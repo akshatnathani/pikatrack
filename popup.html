@@ -64,7 +64,7 @@
         <div class="trainer-streak" id="trainer-streak-display">
           <span class="streak-fire">🔥</span>
           <span class="streak-count" id="streak-val">0</span>
-          <span class="streak-label">day streak</span>
+          <span class="streak-label" id="streak-label">day streak</span>
         </div>
       </div>
 
@@ -92,7 +92,7 @@
     <div class="stat-widget" id="sw-streak">
       <span class="stat-icon">🔥</span>
       <span class="stat-val" id="ss-streak">0</span>
-      <span class="stat-label">Streak</span>
+      <span class="stat-label" id="ss-streak-label">Streak</span>
     </div>
     <div class="stat-widget" id="sw-time">
       <span class="stat-icon">⏱</span>
@@ -107,7 +107,7 @@
     <div class="stat-widget" id="sw-gh">
       <span class="stat-icon">🐙</span>
       <span class="stat-val" id="ss-gh-today">0</span>
-      <span class="stat-label">Commits</span>
+      <span class="stat-label" id="ss-gh-label">Commits</span>
     </div>
     <div class="stat-widget" id="sw-xp">
       <span class="stat-icon">⭐</span>
@@ -240,6 +240,7 @@
     <!-- GYM TAB -->
     <div id="gym" class="sec">
       <div class="sec-title-bar">LeetCode Gym</div>
+      <div class="gh-panel panel-spaced" id="lc-summary"></div>
       <div class="gym-grid" id="gym-grid"></div>
       <div class="sec-title-bar panel-heading-tight">Problems Visited Today</div>
       <div class="gh-panel panel-spaced" id="lc-problems"></div>

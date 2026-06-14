@@ -20,10 +20,19 @@ const fmtMinutes = minutes => Math.round(Number(minutes) || 0) + 'm';
 const todayStr = () => new Date().toDateString();
 const ts = sessions => (sessions||[]).filter(s=>s.date===todayStr());
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const num = value => Number(value) || 0;
 
 function getDomainIcon(domain) {
   for (const k of Object.keys(DOMAIN_ICON)) if (domain.includes(k)) return DOMAIN_ICON[k];
   return '🌐';
+}
+
+function getDisplayStreak(t = {}) {
+  return t.leetcodeUsername ? num(t.leetcodeStreak) : num(t.streak);
+}
+
+function getGitHubTodayCount(t = {}) {
+  return Math.max(num(t.githubTodayCommits), num(t.githubTodayContributions));
 }
 
 function calcScore(t, todaySess, data) {
@@ -36,7 +45,7 @@ function calcScore(t, todaySess, data) {
   const lcScore = Math.min(100, (t.leetcodeTodaySolved || 0) * 50);
 
   // 3. GitHub Contributions (20%) - Target 3 commits today
-  const ghContributions = (t.githubTodayCommits || 0);
+  const ghContributions = getGitHubTodayCount(t);
   const ghScore = Math.min(100, ghContributions * 33.3);
 
   // 4. Educational Video Ratio (10%)
@@ -48,7 +57,7 @@ function calcScore(t, todaySess, data) {
   }
 
   // 5. Streak (5%) - Target 10 days
-  const streakScore = Math.min(100, (t.streak || 0) * 10);
+  const streakScore = Math.min(100, getDisplayStreak(t) * 10);
 
   // Combine
   const finalScore = Math.round(
@@ -69,7 +78,7 @@ function getNextAction(t, todaySess, data) {
   const entCount = vids.length - eduCount;
   if (focusMins < 25) return 'Start a 25m focus block';
   if ((t.leetcodeTodaySolved || 0) < 1) return 'Solve one coding problem';
-  if ((t.githubTodayCommits || 0) < 1) return 'Ship one small commit';
+  if (getGitHubTodayCount(t) < 1) return 'Ship one small commit';
   if (entCount > eduCount && entCount > 0) return 'Swap next video for learning';
   return 'Protect the streak';
 }
@@ -99,7 +108,7 @@ function renderFocusDeck(data) {
     questFocus.classList.toggle('done', focusMins >= 25);
   }
   if (questCode) {
-    const codeCount = Math.max(t.leetcodeTodaySolved || 0, t.githubTodayCommits || 0);
+    const codeCount = Math.max(num(t.leetcodeTodaySolved), getGitHubTodayCount(t));
     questCode.textContent = `Code ${Math.min(1, codeCount)}/1`;
     questCode.classList.toggle('done', codeCount >= 1);
   }
@@ -293,6 +302,10 @@ function renderHeader(data) {
   const todayMs = todaySess.reduce((a,s)=>a+s.durationMs,0);
   const xp = t.todayXP||0;
   const pct = Math.min(100, Math.round(xp/500*100));
+  const displayStreak = getDisplayStreak(t);
+  const hasLeetCodeStreak = num(t.leetcodeStreak) > 0 || Boolean(t.leetcodeUsername);
+  const githubTodayCommits = num(t.githubTodayCommits);
+  const githubTodayDisplay = getGitHubTodayCount(t);
 
   // Update trainer name elements dynamically
   const name = t.trainerName || 'Trainer';
@@ -305,15 +318,21 @@ function renderHeader(data) {
   document.getElementById('xp-num').textContent = xp+' / 500';
   document.getElementById('xp-bar').style.width = pct+'%';
   document.getElementById('ss-score').textContent = calcScore(t,todaySess,data);
-  document.getElementById('ss-streak').textContent = t.streak||0;
+  document.getElementById('ss-streak').textContent = displayStreak;
   const streakValEl = document.getElementById('streak-val');
-  if (streakValEl) streakValEl.textContent = t.streak||0;
+  if (streakValEl) streakValEl.textContent = displayStreak;
+  const streakLabelEl = document.getElementById('streak-label');
+  if (streakLabelEl) streakLabelEl.textContent = hasLeetCodeStreak ? 'LeetCode streak' : 'day streak';
+  const statStreakLabelEl = document.getElementById('ss-streak-label');
+  if (statStreakLabelEl) statStreakLabelEl.textContent = hasLeetCodeStreak ? 'LC Streak' : 'Streak';
   document.getElementById('ss-time').textContent = fmtMs(todayMs);
   document.getElementById('ss-leet').textContent = t.leetcodeSolved||0;
 
   // Update new grid widget elements
   document.getElementById('ss-leet-today').textContent = t.leetcodeTodaySolved||0;
-  document.getElementById('ss-gh-today').textContent = t.githubTodayCommits||0;
+  document.getElementById('ss-gh-today').textContent = githubTodayDisplay;
+  const ghLabelEl = document.getElementById('ss-gh-label');
+  if (ghLabelEl) ghLabelEl.textContent = githubTodayCommits > 0 ? 'Commits' : 'GH Today';
   document.getElementById('ss-xp-earned').textContent = xp;
 
   const vids = (data.videos||[]).filter(v=>v.date===todayStr());
@@ -584,6 +603,27 @@ function renderBattles(data) {
 function renderGym(data) {
   const t = data.trainer || {};
   const solved = t.leetcodeSolved||0;
+  const lcSummary = document.getElementById('lc-summary');
+  if (lcSummary) {
+    const lcStreak = num(t.leetcodeStreak);
+    const activeDays = num(t.leetcodeTotalActiveDays);
+    const todaySolved = num(t.leetcodeTodaySolved);
+    const lastActive = t.leetcodeLastActiveDate ? `Last active ${esc(t.leetcodeLastActiveDate)}` : 'Sync LeetCode to update streak';
+    if (!t.leetcodeUsername && !solved && !lcStreak) {
+      lcSummary.innerHTML = empty('💻', 'Sync LeetCode', 'Add your LeetCode username and press Sync to track streaks.');
+    } else {
+      lcSummary.innerHTML = `<div class="gh-row">
+        <div class="ghr-ico">💻</div>
+        <div class="gh-details">
+          <div class="ghr-name">LeetCode Streak</div>
+          <div class="ghr-sub">${lcStreak} day streak · ${todaySolved} solved today · ${activeDays} active day${activeDays!==1?'s':''} this year</div>
+          <div class="ghr-sub">${lastActive}</div>
+        </div>
+        <div class="ghr-xp">+${todaySolved*50} XP today</div>
+      </div>`;
+    }
+  }
+
   document.getElementById('gym-grid').innerHTML = GYM_BADGES.map(b=>{
     const won = solved>=b.need;
     return `<div class="gym-b ${won?'won':'locked'}">
@@ -617,10 +657,14 @@ function renderGym(data) {
   }
 
   // Render GitHub Region and Top Repositories
-  const commits = t.githubCommits||0;
+  const commits = num(t.githubCommits);
+  const todayCommits = num(t.githubTodayCommits);
+  const todayContributions = num(t.githubTodayContributions);
+  const contributionStreak = num(t.githubContributionStreak);
+  const contributionTotal = num(t.githubContributions);
   const gr = document.getElementById('gh-region');
-  if (!commits) {
-    gr.innerHTML = empty('🐙','Visit GitHub','Navigate to github.com to map your region.');
+  if (!commits && !todayCommits && !todayContributions && !contributionStreak && !contributionTotal) {
+    gr.innerHTML = empty('🐙','Sync GitHub','Add your GitHub username and press Sync to map your region.');
   } else {
     let reposHTML = '';
     if (t.githubRepos && Object.keys(t.githubRepos).length > 0) {
@@ -642,9 +686,10 @@ function renderGym(data) {
       <div class="ghr-ico">🐙</div>
       <div class="gh-details">
         <div class="ghr-name">GitHub Region</div>
-        <div class="ghr-sub">${commits} total commit${commits!==1?'s':''} · ${t.githubTodayCommits||0} today</div>
+        <div class="ghr-sub">${todayCommits} commit${todayCommits!==1?'s':''} today · ${todayContributions} contribution${todayContributions!==1?'s':''} today · ${contributionStreak} day streak</div>
+        <div class="ghr-sub">${commits} public commit${commits!==1?'s':''} indexed · ${contributionTotal} contributions this year</div>
       </div>
-      <div class="ghr-xp">+${(t.githubTodayCommits||0)*30} XP today</div>
+      <div class="ghr-xp">+${todayCommits*30} XP today</div>
     </div>
     ${reposHTML}`;
   }
@@ -658,14 +703,17 @@ function renderOak(data) {
 
   const todaySess = ts(data.sessions);
   const todayMs = todaySess.reduce((a,s)=>a+s.durationMs,0);
+  const displayStreak = getDisplayStreak(t);
   const rows = [
     ['Active today',     fmtMs(todayMs)],
     ['XP earned',        (t.todayXP||0)+' XP'],
     ['LC solved (all)',  (t.leetcodeSolved||0)+' problems'],
     ['LC today',         (t.leetcodeTodaySolved||0)+' problems'],
-    ['GitHub commits',   (t.githubTodayCommits||0)+' today'],
+    ['GitHub commits',   num(t.githubTodayCommits)+' today'],
+    ['GitHub contribs',  num(t.githubTodayContributions)+' today'],
     ['ChatGPT messages',  (t.chatgptTodayCount||0)+' messages'],
-    ['Focus streak',     (t.streak||0)+' days 🔥'],
+    ['LeetCode streak',  displayStreak+' days 🔥'],
+    ['GitHub streak',    num(t.githubContributionStreak)+' days'],
     ['Educational Watch', fmtMinutes(t.educationalVideoMinutes)],
     ['Entertainment Watch', fmtMinutes(t.entertainmentVideoMinutes)]
   ];
@@ -699,10 +747,13 @@ Data:
 - Active time: ${Math.round(tMs/60000)} minutes
 - Sites: ${siteSumm}
 - LeetCode solved total: ${t.leetcodeSolved||0}, today: ${t.leetcodeTodaySolved||0}
-- GitHub commits today: ${t.githubTodayCommits||0}
+- LeetCode streak: ${getDisplayStreak(t)} days
+- GitHub commits today: ${num(t.githubTodayCommits)}
+- GitHub contributions today: ${num(t.githubTodayContributions)}
+- GitHub streak: ${num(t.githubContributionStreak)} days
 - YouTube: ${vids.length} videos (${vids.filter(v=>v.educational).length} educational)
 - Focus battles: ${batt.filter(b=>b.won).length} wins / ${batt.length} total
-- XP today: ${t.todayXP||0}, Streak: ${t.streak||0} days
+- XP today: ${t.todayXP||0}
 
 Write 4-5 sentences: (1) biggest win today, (2) one weakness or pattern to fix, (3) one concrete action for tomorrow. End with a brief Pokémon-themed encouragement.`;
 
@@ -825,7 +876,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       syncStatus.textContent = 'Syncing... 🔄';
       syncStatus.style.color = 'var(--muted)';
     }
-    chrome.runtime.sendMessage({type: 'SYNC_ACCOUNTS'}, res => {
+    chrome.runtime.sendMessage({type: 'SYNC_ACCOUNTS', force: true}, res => {
       if (indicatorBtn) indicatorBtn.classList.remove('spinning');
       if (res && res.success) {
         if (syncStatus) {

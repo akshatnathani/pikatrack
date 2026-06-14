@@ -2,6 +2,10 @@ const DB_NAME = 'pikadex_v3';
 const DB_VERSION = 3;
 const POPUP_RECORD_LIMIT = 350;
 const SYNC_CACHE_TTL_MS = 5 * 60 * 1000;
+const GITHUB_API_HEADERS = {
+  'Accept': 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28'
+};
 let db = null;
 
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -9,6 +13,34 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
   }
 });
+
+function storageGet(keys) {
+  return new Promise(resolve => {
+    chrome.storage.local.get(keys, value => resolve(value || {}));
+  });
+}
+
+function storageSet(values) {
+  return new Promise(resolve => {
+    chrome.storage.local.set(values, () => resolve());
+  });
+}
+
+function storageRemove(keys) {
+  return new Promise(resolve => {
+    chrome.storage.local.remove(keys, () => resolve());
+  });
+}
+
+function sendTabMessage(tabId, payload) {
+  try {
+    chrome.tabs.sendMessage(tabId, payload, () => {
+      void chrome.runtime.lastError;
+    });
+  } catch (error) {
+    console.warn('PikaDex: tab message skipped:', describeSyncError(error));
+  }
+}
 
 function openDB() {
   return new Promise((res, rej) => {
@@ -113,6 +145,9 @@ function resetDailyTrainerFields(t, today) {
   t.todayFocusMs = 0;
   t.leetcodeTodaySolved = 0;
   t.githubTodayCommits = 0;
+  t.githubTodayContributions = 0;
+  t.lastGitHubTodayCommitsAwarded = 0;
+  t.lastGitHubCommitAwardDate = today;
   t.chatgptTodayCount = 0;
   t.githubRepos = {};
   t.leetcodeProblems = {};
@@ -151,9 +186,18 @@ async function getOrCreateTrainer() {
       hackerrankUsername: '',
       
       lastLeetCodeSolved: 0,
+      leetcodeStreak: 0,
+      leetcodeTotalActiveDays: 0,
+      leetcodeLastActiveDate: '',
       lastGitHubCommits: 0,
       lastGitHubPRs: 0,
       lastGitHubIssues: 0,
+      lastGitHubCommitAwardDate: '',
+      lastGitHubTodayCommitsAwarded: 0,
+      githubContributions: 0,
+      githubTodayContributions: 0,
+      githubContributionStreak: 0,
+      githubLastContributionDate: '',
       
       educationalVideoMinutes: 0,
       entertainmentVideoMinutes: 0,
@@ -175,9 +219,18 @@ async function getOrCreateTrainer() {
     codechefHandle: '',
     hackerrankUsername: '',
     lastLeetCodeSolved: 0,
+    leetcodeStreak: 0,
+    leetcodeTotalActiveDays: 0,
+    leetcodeLastActiveDate: '',
     lastGitHubCommits: 0,
     lastGitHubPRs: 0,
     lastGitHubIssues: 0,
+    lastGitHubCommitAwardDate: '',
+    lastGitHubTodayCommitsAwarded: 0,
+    githubContributions: 0,
+    githubTodayContributions: 0,
+    githubContributionStreak: 0,
+    githubLastContributionDate: '',
     educationalVideoMinutes: 0,
     entertainmentVideoMinutes: 0,
     lastSyncTime: 0,
@@ -351,6 +404,9 @@ function resetLeetCodeSyncState(t) {
   t.leetcodeSolved = 0;
   t.leetcodeTodaySolved = 0;
   t.lastLeetCodeSolved = 0;
+  t.leetcodeStreak = 0;
+  t.leetcodeTotalActiveDays = 0;
+  t.leetcodeLastActiveDate = '';
   t.leetcodeProblems = {};
 }
 
@@ -360,6 +416,12 @@ function resetGitHubSyncState(t) {
   t.lastGitHubCommits = 0;
   t.lastGitHubPRs = 0;
   t.lastGitHubIssues = 0;
+  t.lastGitHubCommitAwardDate = '';
+  t.lastGitHubTodayCommitsAwarded = 0;
+  t.githubContributions = 0;
+  t.githubTodayContributions = 0;
+  t.githubContributionStreak = 0;
+  t.githubLastContributionDate = '';
   t.githubRepos = {};
 }
 
@@ -393,7 +455,7 @@ async function updateHeartbeatTrainerStats({ category, githubRepo, leetcodeProbl
 }
 
 async function closeCurrentSession() {
-  const data = await chrome.storage.local.get(['currentSession']);
+  const data = await storageGet(['currentSession']);
   if (data.currentSession) {
     const sess = data.currentSession;
     const durationMs = Math.round((sess.accumulatedSeconds || 0) * 1000);
@@ -434,11 +496,11 @@ async function closeCurrentSession() {
         t.lastEvoStage = newEvo;
         chrome.tabs.query({ active: true }, tabs => {
           tabs.forEach(tab => {
-            chrome.tabs.sendMessage(tab.id, {
+            sendTabMessage(tab.id, {
               type: 'PIKA_EVOLVE',
               stage: newEvo,
               text: newEvo === 'pikachu' ? '3 hours of focus. Pikachu powered up!' : '10 hours of focus. Pikachu is fully charged!'
-            }).catch(() => {});
+            });
           });
         });
       }
@@ -473,12 +535,12 @@ async function closeCurrentSession() {
         });
       }
     }
-    await chrome.storage.local.remove(['currentSession']);
+    await storageRemove(['currentSession']);
   }
 }
 
 async function closeCurrentVideo() {
-  const data = await chrome.storage.local.get(['currentVideo']);
+  const data = await storageGet(['currentVideo']);
   if (data.currentVideo) {
     const v = data.currentVideo;
     if (v.watchSeconds >= 5) {
@@ -531,7 +593,7 @@ async function closeCurrentVideo() {
       t.level = Math.floor(t.totalXP / 500) + 1;
       await dbPut('trainer', t);
     }
-    await chrome.storage.local.remove(['currentVideo']);
+    await storageRemove(['currentVideo']);
   }
 }
 
@@ -603,7 +665,7 @@ async function handleHeartbeat(msg, sender) {
   }
 
   const isValid = msg.visible && msg.userActive;
-  const storage = await chrome.storage.local.get(['currentSession', 'currentVideo']);
+  const storage = await storageGet(['currentSession', 'currentVideo']);
   let sess = storage.currentSession;
   let vid = storage.currentVideo;
   const now = Date.now();
@@ -720,16 +782,16 @@ async function handleHeartbeat(msg, sender) {
   if (sess) {
     toSet.currentSession = sess;
   } else {
-    await chrome.storage.local.remove(['currentSession']);
+    await storageRemove(['currentSession']);
   }
   if (vid) {
     toSet.currentVideo = vid;
   } else {
-    await chrome.storage.local.remove(['currentVideo']);
+    await storageRemove(['currentVideo']);
   }
   
   if (Object.keys(toSet).length > 0) {
-    await chrome.storage.local.set(toSet);
+    await storageSet(toSet);
   }
 }
 
@@ -787,23 +849,130 @@ async function fetchJsonWithTimeout(url, options = {}, label = 'Request', timeou
   }
 }
 
-async function fetchCachedAccountStats(provider, username, fetcher) {
+async function fetchTextWithTimeout(url, options = {}, label = 'Request', timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    if (!res.ok) throw new Error(`${label} returned HTTP ${res.status}`);
+    return await res.text();
+  } catch (error) {
+    if (error.name === 'AbortError') throw error;
+    if (error instanceof TypeError) {
+      throw new Error(`${label} could not connect. Check network access or API availability.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function localDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function shiftDateKey(dateKey, deltaDays) {
+  const date = new Date(`${dateKey}T12:00:00`);
+  date.setDate(date.getDate() + deltaDays);
+  return localDateKey(date);
+}
+
+function computeContributionStreak(days, todayKey = localDateKey()) {
+  if (!days || !Object.keys(days).length) return 0;
+
+  let cursor = todayKey;
+  if (!(days[cursor] > 0)) {
+    const yesterday = shiftDateKey(todayKey, -1);
+    if (days[yesterday] > 0) {
+      cursor = yesterday;
+    } else {
+      return 0;
+    }
+  }
+
+  let streak = 0;
+  while (days[cursor] > 0) {
+    streak++;
+    cursor = shiftDateKey(cursor, -1);
+  }
+  return streak;
+}
+
+async function fetchCachedAccountStats(provider, username, fetcher, options = {}) {
   const safeName = cleanString(username, 80).toLowerCase();
   const key = `syncCache:${provider}:${safeName}`;
-  const cached = (await chrome.storage.local.get(key))[key];
+  const cached = (await storageGet(key))[key];
   const now = Date.now();
-  if (cached?.data && now - cached.at < SYNC_CACHE_TTL_MS) {
+  if (!options.force && cached?.data && now - cached.at < SYNC_CACHE_TTL_MS) {
     return { ...cached.data, fromCache: true };
   }
 
   const data = await fetcher();
-  await chrome.storage.local.set({ [key]: { at: now, data } });
+  await storageSet({ [key]: { at: now, data } });
   return { ...data, fromCache: false };
+}
+
+function parseLeetCodeCalendar(calendarJson) {
+  try {
+    const raw = JSON.parse(calendarJson || '{}');
+    const days = {};
+    Object.entries(raw).forEach(([timestamp, count]) => {
+      const seconds = Number(timestamp);
+      const value = Number(count) || 0;
+      if (!Number.isFinite(seconds) || value <= 0) return;
+      const key = localDateKey(new Date(seconds * 1000));
+      days[key] = (days[key] || 0) + value;
+    });
+    return days;
+  } catch {
+    return {};
+  }
+}
+
+async function fetchLeetCodeCalendarStats(username) {
+  const year = new Date().getFullYear();
+  const query = `
+    query userProfileCalendar($username: String!, $year: Int) {
+      matchedUser(username: $username) {
+        userCalendar(year: $year) {
+          streak
+          totalActiveDays
+          submissionCalendar
+        }
+      }
+    }
+  `;
+  const json = await fetchJsonWithTimeout('https://leetcode.com/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables: { username, year } })
+  }, 'LeetCode calendar');
+  const calendar = json?.data?.matchedUser?.userCalendar;
+  if (!calendar) throw new Error('LeetCode calendar response did not include profile calendar');
+
+  const days = parseLeetCodeCalendar(calendar.submissionCalendar);
+  const lastActiveDate = Object.keys(days).sort().pop() || '';
+
+  return {
+    streak: Number(calendar.streak) || computeContributionStreak(days),
+    totalActiveDays: Number(calendar.totalActiveDays) || Object.keys(days).length,
+    lastActiveDate
+  };
 }
 
 async function fetchLeetCodeStats(username) {
   const safeUsername = encodeURIComponent(username);
   const failures = [];
+  let calendarStats = null;
+  try {
+    calendarStats = await fetchLeetCodeCalendarStats(username);
+  } catch (err) {
+    console.warn('PikaDex: LeetCode calendar sync skipped:', describeSyncError(err));
+  }
+
   try {
     const query = `
       query userProblemsSolved($username: String!) {
@@ -845,7 +1014,7 @@ async function fetchLeetCodeStats(username) {
       const easy = stats.find(s => s.difficulty === 'Easy')?.count || 0;
       const medium = stats.find(s => s.difficulty === 'Medium')?.count || 0;
       const hard = stats.find(s => s.difficulty === 'Hard')?.count || 0;
-      return { all, easy, medium, hard, solvedToday };
+      return { all, easy, medium, hard, solvedToday, ...calendarStats };
     }
     throw new Error('LeetCode GraphQL response did not include profile stats');
   } catch (err) {
@@ -875,11 +1044,91 @@ async function fetchLeetCodeStats(username) {
     const easy = stats.find(s => s.difficulty === 'Easy')?.count || 0;
     const medium = stats.find(s => s.difficulty === 'Medium')?.count || 0;
     const hard = stats.find(s => s.difficulty === 'Hard')?.count || 0;
-    return { all, easy, medium, hard, solvedToday };
+    return { all, easy, medium, hard, solvedToday, ...calendarStats };
   } catch (err) {
     failures.push(describeSyncError(err));
     throw new Error(`LeetCode sync unavailable: ${failures.join(' | ')}`);
   }
+}
+
+async function fetchGitHubPublicEventStats(username, isLocalToday) {
+  const safeUsername = encodeURIComponent(username);
+  const events = await fetchJsonWithTimeout(`https://api.github.com/users/${safeUsername}/events/public?per_page=100`, {
+    headers: GITHUB_API_HEADERS
+  }, 'GitHub public events');
+  const commitShas = new Set();
+  let fallbackCommitCount = 0;
+  let contributionsToday = 0;
+
+  (events || []).forEach(event => {
+    if (!isLocalToday(event.created_at)) return;
+    const action = event.payload?.action;
+
+    if (event.type === 'PushEvent') {
+      const commits = event.payload?.commits || [];
+      if (commits.length) {
+        commits.forEach((commit, index) => {
+          commitShas.add(commit.sha || `${event.id}:${index}`);
+        });
+      } else {
+        fallbackCommitCount += Number(event.payload?.distinct_size || event.payload?.size || 0);
+      }
+      contributionsToday += Math.max(1, commits.length || Number(event.payload?.distinct_size || event.payload?.size || 0));
+      return;
+    }
+
+    if (event.type === 'IssuesEvent' && action === 'opened') contributionsToday++;
+    if (event.type === 'PullRequestEvent' && action === 'opened') contributionsToday++;
+    if (event.type === 'PullRequestReviewEvent' && action === 'submitted') contributionsToday++;
+    if (event.type === 'CreateEvent') contributionsToday++;
+  });
+
+  return {
+    commitsToday: commitShas.size + fallbackCommitCount,
+    contributionsToday
+  };
+}
+
+async function fetchGitHubContributionStats(username, todayKey = localDateKey()) {
+  const safeUsername = encodeURIComponent(username);
+  const html = await fetchTextWithTimeout(`https://github.com/users/${safeUsername}/contributions`, {
+    headers: { 'Accept': 'text/html' }
+  }, 'GitHub contribution calendar');
+  const days = {};
+  const dayPattern = /data-date="(\d{4}-\d{2}-\d{2})"[\s\S]*?<tool-tip[^>]*>([\s\S]*?)<\/tool-tip>/g;
+  let match;
+
+  while ((match = dayPattern.exec(html)) !== null) {
+    const [, dateKey, rawTooltip] = match;
+    const text = rawTooltip.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const countMatch = text.match(/([\d,]+)\s+contribution/i);
+    days[dateKey] = countMatch ? Number(countMatch[1].replace(/,/g, '')) : 0;
+  }
+
+  if (!Object.keys(days).length) {
+    throw new Error('GitHub contribution calendar did not include day cells');
+  }
+
+  const totalFromHeader = (() => {
+    const headerMatch = html.match(/id="js-contribution-activity-description"[\s\S]*?>([\s\S]*?)<\/h2>/i);
+    const text = (headerMatch?.[1] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const countMatch = text.match(/([\d,]+)\s+contribution/i);
+    return countMatch ? Number(countMatch[1].replace(/,/g, '')) : null;
+  })();
+  const totalFromDays = Object.values(days).reduce((sum, count) => sum + count, 0);
+  const lastContributionDate = Object.entries(days)
+    .filter(([, count]) => count > 0)
+    .map(([dateKey]) => dateKey)
+    .sort()
+    .pop() || '';
+
+  return {
+    contributions: totalFromHeader ?? totalFromDays,
+    contributionsToday: days[todayKey] || 0,
+    contributionStreak: computeContributionStreak(days, todayKey),
+    lastContributionDate,
+    contributionDays: days
+  };
 }
 
 async function fetchGitHubStats(username) {
@@ -893,10 +1142,14 @@ async function fetchGitHubStats(username) {
   let prs = null;
   let issues = null;
   let repos = null;
-  
-  let commitsToday = null;
+  let commitsToday = 0;
   let prsToday = null;
   let issuesToday = null;
+  let contributions = null;
+  let contributionsToday = 0;
+  let contributionStreak = 0;
+  let lastContributionDate = '';
+  const todayKey = localDateKey();
 
   const todayDate = new Date().toDateString();
   const isLocalToday = dateStr => {
@@ -904,30 +1157,61 @@ async function fetchGitHubStats(username) {
     return !Number.isNaN(parsed.getTime()) && parsed.toDateString() === todayDate;
   };
 
-  // 1. Commits Total & Today
   try {
     const commitData = await fetchJsonWithTimeout(`https://api.github.com/search/commits?q=${safeUserQuery}&sort=author-date&order=desc&per_page=100`, {
-      headers: { 'Accept': 'application/vnd.github.cloak-preview+json' }
+      headers: GITHUB_API_HEADERS
     }, 'GitHub commits');
     successes++;
     commits = commitData.total_count || 0;
-    
-    const items = commitData.items || [];
-    commitsToday = items.filter(item => {
-      const dateStr = item.commit?.author?.date;
-      return dateStr && isLocalToday(dateStr);
-    }).length;
+
+    const todayCommitShas = new Set();
+    (commitData.items || []).forEach(item => {
+      const dateStr = item.commit?.author?.date || item.commit?.committer?.date;
+      if (dateStr && isLocalToday(dateStr)) {
+        todayCommitShas.add(item.sha || item.html_url || dateStr);
+      }
+    });
+    commitsToday = Math.max(commitsToday, todayCommitShas.size);
   } catch (e) {
     failures.push('commits: ' + describeSyncError(e));
     console.warn('PikaDex: GitHub commits sync skipped:', describeSyncError(e));
   }
 
-  // 2. PRs Total & Today
   try {
-    const prData = await fetchJsonWithTimeout(`https://api.github.com/search/issues?q=${safePrQuery}&sort=created&order=desc&per_page=100`, {}, 'GitHub pull requests');
+    const eventStats = await fetchGitHubPublicEventStats(username, isLocalToday);
+    successes++;
+    commitsToday = Math.max(commitsToday, eventStats.commitsToday);
+    contributionsToday = Math.max(contributionsToday, eventStats.contributionsToday);
+  } catch (e) {
+    failures.push('events: ' + describeSyncError(e));
+    console.warn('PikaDex: GitHub event sync skipped:', describeSyncError(e));
+  }
+
+  try {
+    const contributionStats = await fetchGitHubContributionStats(username, todayKey);
+    successes++;
+    contributions = contributionStats.contributions;
+    contributionsToday = Math.max(contributionsToday, contributionStats.contributionsToday, commitsToday);
+    contributionStreak = contributionStats.contributionStreak;
+    lastContributionDate = contributionStats.lastContributionDate;
+
+    if (commitsToday > 0) {
+      contributionStats.contributionDays[todayKey] = Math.max(contributionStats.contributionDays[todayKey] || 0, commitsToday);
+      contributionStreak = computeContributionStreak(contributionStats.contributionDays, todayKey);
+      lastContributionDate = todayKey;
+    }
+  } catch (e) {
+    failures.push('contributions: ' + describeSyncError(e));
+    console.warn('PikaDex: GitHub contribution calendar sync skipped:', describeSyncError(e));
+  }
+
+  try {
+    const prData = await fetchJsonWithTimeout(`https://api.github.com/search/issues?q=${safePrQuery}&sort=created&order=desc&per_page=100`, {
+      headers: GITHUB_API_HEADERS
+    }, 'GitHub pull requests');
     successes++;
     prs = prData.total_count || 0;
-    
+
     const items = prData.items || [];
     prsToday = items.filter(item => {
       const dateStr = item.created_at;
@@ -938,12 +1222,13 @@ async function fetchGitHubStats(username) {
     console.warn('PikaDex: GitHub PR sync skipped:', describeSyncError(e));
   }
 
-  // 3. Issues Total & Today
   try {
-    const issueData = await fetchJsonWithTimeout(`https://api.github.com/search/issues?q=${safeIssueQuery}&sort=created&order=desc&per_page=100`, {}, 'GitHub issues');
+    const issueData = await fetchJsonWithTimeout(`https://api.github.com/search/issues?q=${safeIssueQuery}&sort=created&order=desc&per_page=100`, {
+      headers: GITHUB_API_HEADERS
+    }, 'GitHub issues');
     successes++;
     issues = issueData.total_count || 0;
-    
+
     const items = issueData.items || [];
     issuesToday = items.filter(item => {
       const dateStr = item.created_at;
@@ -954,9 +1239,10 @@ async function fetchGitHubStats(username) {
     console.warn('PikaDex: GitHub issue sync skipped:', describeSyncError(e));
   }
 
-  // 4. Public Repos
   try {
-    const repoData = await fetchJsonWithTimeout(`https://api.github.com/users/${safeUsername}`, {}, 'GitHub user profile');
+    const repoData = await fetchJsonWithTimeout(`https://api.github.com/users/${safeUsername}`, {
+      headers: GITHUB_API_HEADERS
+    }, 'GitHub user profile');
     successes++;
     repos = repoData.public_repos || 0;
   } catch (e) {
@@ -968,21 +1254,34 @@ async function fetchGitHubStats(username) {
     throw new Error(`GitHub sync unavailable: ${failures.join(' | ')}`);
   }
 
-  return { commits, prs, issues, repos, commitsToday, prsToday, issuesToday };
+  return {
+    commits,
+    prs,
+    issues,
+    repos,
+    commitsToday,
+    prsToday,
+    issuesToday,
+    contributions,
+    contributionsToday,
+    contributionStreak,
+    lastContributionDate
+  };
 }
 
-async function syncAccounts() {
+async function syncAccounts(options = {}) {
   const t = await getOrCreateTrainer();
   let xpEarned = 0;
   let logEvents = [];
   let syncErrors = [];
   let cachedProviders = [];
   const date = new Date().toDateString();
+  const todayKey = localDateKey();
 
   // 1. Sync LeetCode
   if (t.leetcodeUsername) {
     try {
-      const stats = await fetchCachedAccountStats('leetcode', t.leetcodeUsername, () => fetchLeetCodeStats(t.leetcodeUsername));
+      const stats = await fetchCachedAccountStats('leetcode', t.leetcodeUsername, () => fetchLeetCodeStats(t.leetcodeUsername), { force: Boolean(options.force) });
       if (stats.fromCache) cachedProviders.push('LeetCode');
       const prevSolved = t.lastLeetCodeSolved || t.leetcodeSolved || 0;
       
@@ -1024,6 +1323,9 @@ async function syncAccounts() {
           logEvents.push(`+${diff} LeetCode Solves (+${xp} XP)`);
         }
       }
+      if (stats.streak !== undefined) t.leetcodeStreak = Math.max(0, Number(stats.streak) || 0);
+      if (stats.totalActiveDays !== undefined) t.leetcodeTotalActiveDays = Math.max(0, Number(stats.totalActiveDays) || 0);
+      if (stats.lastActiveDate !== undefined) t.leetcodeLastActiveDate = stats.lastActiveDate || '';
       t.lastLeetCodeSolved = stats.all;
     } catch (e) {
       syncErrors.push('LeetCode: ' + describeSyncError(e));
@@ -1034,51 +1336,40 @@ async function syncAccounts() {
   // 2. Sync GitHub
   if (t.githubUsername) {
     try {
-      const stats = await fetchCachedAccountStats('github', t.githubUsername, () => fetchGitHubStats(t.githubUsername));
+      const stats = await fetchCachedAccountStats('github', t.githubUsername, () => fetchGitHubStats(t.githubUsername), { force: Boolean(options.force) });
       if (stats.fromCache) cachedProviders.push('GitHub');
-      const prevCommits = t.lastGitHubCommits || t.githubCommits || 0;
       const prevPRs = t.lastGitHubPRs || 0;
       const prevIssues = t.lastGitHubIssues || 0;
 
-      // Commits
-      if (stats.commits !== null && stats.commitsToday !== null) {
-        if (prevCommits === 0 && (t.lastGitHubCommits === undefined || t.lastGitHubCommits === 0)) {
-          t.lastGitHubCommits = stats.commits;
-          t.githubCommits = stats.commits;
-          t.githubTodayCommits = stats.commitsToday;
-
-          // Award XP for today's commits on first connection
-          if (stats.commitsToday > 0) {
-            const xp = stats.commitsToday * 30;
-            t.totalXP += xp;
-            t.todayXP += xp;
-            for (let i = 0; i < stats.commitsToday; i++) {
-              await dbAdd('sessions', {domain: 'github.com', type: 'Development', startTime: Date.now(), endTime: Date.now(), durationMs: 0, xp: 30, date});
-              await dbAdd('battles', {domain: 'github.com', durationMs: 0, won: true, xp: 30, date, timestamp: Date.now()});
-            }
-            xpEarned += xp;
-            logEvents.push(`Connected GitHub: +${stats.commitsToday} Commits Today (+${xp} XP)`);
-          }
-        } else {
-          // Sync today commits directly
-          t.githubTodayCommits = stats.commitsToday;
-
-          if (stats.commits > prevCommits) {
-            const diff = stats.commits - prevCommits;
-            const xp = diff * 30;
-            t.totalXP += xp;
-            t.todayXP += xp;
-            t.githubCommits = stats.commits;
-
-            for (let i = 0; i < diff; i++) {
-              await dbAdd('sessions', {domain: 'github.com', type: 'Development', startTime: Date.now(), endTime: Date.now(), durationMs: 0, xp: 30, date});
-              await dbAdd('battles', {domain: 'github.com', durationMs: 0, won: true, xp: 30, date, timestamp: Date.now()});
-            }
-            xpEarned += xp;
-            logEvents.push(`+${diff} GitHub Commits (+${xp} XP)`);
-          }
-        }
+      if (stats.commits !== null && stats.commits !== undefined) {
+        t.githubCommits = stats.commits;
       }
+      if (stats.contributions !== null && stats.contributions !== undefined) {
+        t.githubContributions = stats.contributions;
+      }
+      t.githubTodayCommits = Math.max(0, Number(stats.commitsToday || 0));
+      t.githubTodayContributions = Math.max(0, Number(stats.contributionsToday || 0));
+      t.githubContributionStreak = Math.max(0, Number(stats.contributionStreak || 0));
+      t.githubLastContributionDate = stats.lastContributionDate || t.githubLastContributionDate || '';
+
+      if (t.lastGitHubCommitAwardDate !== todayKey) {
+        t.lastGitHubCommitAwardDate = todayKey;
+        t.lastGitHubTodayCommitsAwarded = 0;
+      }
+
+      const commitDelta = Math.max(0, t.githubTodayCommits - (t.lastGitHubTodayCommitsAwarded || 0));
+      if (commitDelta > 0) {
+        const xp = commitDelta * 30;
+        t.totalXP += xp;
+        t.todayXP += xp;
+        for (let i = 0; i < commitDelta; i++) {
+          await dbAdd('sessions', {domain: 'github.com', type: 'Development', startTime: Date.now(), endTime: Date.now(), durationMs: 0, xp: 30, date});
+          await dbAdd('battles', {domain: 'github.com', durationMs: 0, won: true, xp: 30, date, timestamp: Date.now()});
+        }
+        xpEarned += xp;
+        logEvents.push(`+${commitDelta} GitHub commit${commitDelta !== 1 ? 's' : ''} today (+${xp} XP)`);
+      }
+      t.lastGitHubTodayCommitsAwarded = Math.max(t.lastGitHubTodayCommitsAwarded || 0, t.githubTodayCommits);
 
       // PRs (subsequent / first sync)
       if (stats.prs !== null && stats.prsToday !== null) {
@@ -1142,7 +1433,7 @@ async function syncAccounts() {
         }
       }
 
-      if (stats.commits !== null) t.lastGitHubCommits = stats.commits;
+      if (stats.commits !== null && stats.commits !== undefined) t.lastGitHubCommits = stats.commits;
       if (stats.prs !== null) t.lastGitHubPRs = stats.prs;
       if (stats.issues !== null) t.lastGitHubIssues = stats.issues;
     } catch (e) {
@@ -1171,7 +1462,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       })
       .then(async ({trainer,sessions,videos,battles,site_stats}) => {
         // Fetch current active session and video from storage
-        const storage = await chrome.storage.local.get(['currentSession', 'currentVideo']);
+        const storage = await storageGet(['currentSession', 'currentVideo']);
         
         let liveXp = 0;
         let liveFocusMs = 0;
@@ -1279,7 +1570,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type==='SYNC_ACCOUNTS') {
-    syncAccounts()
+    syncAccounts({ force: Boolean(msg.force) })
       .then(res => sendResponse(res))
       .catch(err => sendResponse({success:false, error:err.message}));
     return true;

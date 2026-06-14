@@ -1,0 +1,40 @@
+{
+  "manifest_version": 2,
+  "name": "PikaDex",
+  "version": "2.0.0",
+  "description": "Your Pokemon productivity companion. Catch websites, earn XP, and evolve your focus partner.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "activeTab",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    { "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "run_at": "document_end" },
+    { "matches": ["*://leetcode.com/*", "*://www.leetcode.com/*"], "js": ["scrapers/leetcode.js"], "run_at": "document_idle" },
+    { "matches": ["*://github.com/*"], "js": ["scrapers/github.js"], "run_at": "document_idle" },
+    { "matches": ["*://www.youtube.com/*", "*://youtube.com/*"], "js": ["scrapers/youtube.js"], "run_at": "document_idle" }
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "PikaDex"
+  },
+  "content_security_policy": "script-src 'self'; object-src 'self'",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "pikadex@local",
+      "strict_min_version": "109.0"
+    }
+  }
+}

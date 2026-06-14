@@ -1,6 +1,6 @@
 ﻿# PikaDex
 
-PikaDex is a Chrome extension that turns browser-based work into a playful productivity dashboard. It tracks active focus time, coding progress, learning activity, media habits, and daily XP so developers and students can see where their attention went and what to improve next.
+PikaDex is a browser extension that turns web-based work into a playful productivity dashboard. It tracks active focus time, coding progress, learning activity, media habits, and daily XP so developers and students can see where their attention went and what to improve next.
 
 The product is built around a calmer companion experience: a lightweight dashboard, a static partner portrait that evolves with daily focus, and clear data views for focus, coding, media, routes, battles, and AI summaries.
 
@@ -44,8 +44,10 @@ The content script can show the companion on regular web pages for XP feedback, 
 ## Architecture
 
 ```text
-manifest.json        Chrome extension manifest
-background.js        Service worker, IndexedDB, sync, scoring, export, and message handling
+manifest.json        Chrome MV3 extension manifest
+manifest.firefox.json Firefox add-on manifest used by the build script
+build-firefox.ps1    Creates dist/firefox and a Firefox add-on zip
+background.js        Background runtime, IndexedDB, sync, scoring, export, and message handling
 content.js           Page heartbeat tracking and companion overlay
 popup.html           Popup dashboard markup
 popup.css            Popup dashboard styles
@@ -56,6 +58,40 @@ welcome.js           Onboarding flow and setup submission
 scrapers/            Site-specific helper scripts for GitHub, LeetCode, and YouTube
 icons/               Extension icons
 ```
+
+## Browser Support
+
+### Chrome / Chromium
+
+Load the project root as an unpacked extension:
+
+1. Open `chrome://extensions`.
+2. Enable Developer mode.
+3. Choose Load unpacked.
+4. Select the PikaDex project folder.
+
+Chrome uses `manifest.json`, which is the Manifest V3 service worker target.
+
+### Firefox
+
+Build the Firefox add-on package first:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-firefox.ps1
+```
+
+The script creates:
+
+- `dist/firefox/manifest.json` for temporary local testing.
+- `dist/pikadex-firefox.zip` for add-on distribution or AMO submission.
+
+To test locally:
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Choose Load Temporary Add-on.
+3. Select `dist/firefox/manifest.json`.
+
+Firefox uses `manifest.firefox.json` as the source manifest. The build script copies it to `dist/firefox/manifest.json` because Firefox add-ons expect the manifest to be named `manifest.json` inside the packaged add-on.
 
 ## Data Model
 
@@ -70,6 +106,8 @@ Stores profile and aggregate state:
 - `totalXP`, `todayXP`, `level`, `streak`
 - platform handles for LeetCode, GitHub, Codeforces, CodeChef, and HackerRank
 - coding and media counters
+- LeetCode solved count, active days, and streak
+- GitHub public commit counts, contribution counts, and contribution streak
 - `trackingPaused`
 - GitHub repo activity and LeetCode problem activity
 
@@ -136,7 +174,7 @@ Uses LeetCode GraphQL plus a fallback profile endpoint to calculate total solved
 
 ### GitHub
 
-Uses public GitHub endpoints for commits, pull requests, issues, and repository metadata.
+Uses public GitHub endpoints for commits, pull requests, issues, repository metadata, public events, and the public contribution calendar. Private contribution data can only appear if GitHub exposes it publicly on the profile.
 
 ### Anthropic
 
