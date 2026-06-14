@@ -3,2023 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>PikaDex</title>
-<style>
-/* CSS Reset and Font Styling */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-:root {
-  --bg: #0b1220;
-  --surface: #111827;
-  --surface2: #1a2435;
-  --accent: #facc15;
-  --accent-glow: rgba(250, 204, 21, 0.15);
-  --red: #cc1530;
-  --red-glow: rgba(204, 21, 48, 0.4);
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --dim: #64748b;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(250, 204, 21, 0.3);
-  --green: #10b981;
-  --green-bg: rgba(16, 185, 129, 0.12);
-  --red-bg: rgba(239, 68, 68, 0.12);
-  --red-txt: #f87171;
-  --blue: #3b82f6;
-  --blue-bg: rgba(59, 130, 246, 0.12);
-  --purple: #a855f7;
-  --purple-bg: rgba(168, 85, 247, 0.12);
-}
-
-body {
-  width: 480px;
-  height: 720px;
-  background-color: var(--bg);
-  color: var(--text);
-  overflow: hidden;
-}
-
-/* Scrollbar Customization */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--surface2);
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
-}
-
-/* App Layout Shell */
-.shell {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  position: relative;
-  background-color: var(--bg);
-}
-
-/* ══════════ FIXED HEADER (64px) ══════════ */
-.header {
-  height: 64px;
-  background: linear-gradient(90deg, #111827, var(--bg));
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  z-index: 10;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-/* Pokédex camera eye animation */
-.pokedex-eye {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #93c5fd, #2563eb);
-  border: 2px solid #fff;
-  box-shadow: 0 0 8px #3b82f6;
-  animation: eyePulse 2.5s infinite alternate;
-  position: relative;
-  overflow: hidden;
-}
-.pokedex-eye::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #fff;
-  opacity: 0.8;
-}
-@keyframes eyePulse {
-  0% { box-shadow: 0 0 4px #2563eb; }
-  100% { box-shadow: 0 0 12px #60a5fa, 0 0 20px #3b82f6; }
-}
-
-.header-center {
-  display: flex;
-  flex-direction: column;
-}
-.header-title {
-  font-size: 15px;
-  font-weight: 900;
-  color: var(--text);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, var(--accent), #fff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.header-subtitle {
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.header-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-.header-lvl {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-}
-.header-evo-name {
-  font-size: 9px;
-  color: var(--muted);
-}
-.settings-trigger {
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s, transform 0.2s;
-  outline: none;
-}
-.settings-trigger:hover {
-  color: var(--accent);
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.settings-trigger.spinning {
-  animation: spin 1.2s linear infinite;
-  color: var(--accent);
-}
-
-/* ══════════ TRAINER HERO PANEL (Max 120px) ══════════ */
-.trainer-hero {
-  height: 120px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(26, 36, 53, 0.4) 0%, rgba(11, 18, 32, 0.7) 100%);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  flex-shrink: 0;
-  position: relative;
-}
-.trainer-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex: 1;
-}
-.sprite-container {
-  width: 66px;
-  height: 66px;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--surface2) 0%, var(--bg) 100%);
-  border: 1.5px solid var(--border);
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  animation: floatOrb 3.5s ease-in-out infinite;
-}
-@keyframes floatOrb {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-.sprite-ring {
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  border: 1px dashed rgba(250, 204, 21, 0.25);
-  animation: rotateRing 15s linear infinite;
-}
-@keyframes rotateRing {
-  to { transform: rotate(360deg); }
-}
-.sprite-svg {
-  width: 48px;
-  height: 48px;
-  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.4));
-}
-
-.trainer-meta {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin-left: 4px;
-}
-.trainer-meta-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: 0.02em;
-}
-.trainer-meta-desc {
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 1px;
-}
-.score-badge {
-  background: radial-gradient(circle at center, var(--surface2) 0%, rgba(17, 24, 39, 0.8) 100%);
-  border: 1px solid var(--border-focus);
-  box-shadow: 0 0 10px rgba(250, 204, 21, 0.1);
-  width: 58px;
-  height: 58px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  position: relative;
-  overflow: hidden;
-}
-.score-badge::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(250,204,21,0.12) 0%, transparent 100%);
-  pointer-events: none;
-}
-.score-value {
-  font-size: 19px;
-  font-weight: 900;
-  color: var(--accent);
-  line-height: 1.1;
-  text-shadow: 0 0 8px rgba(250, 204, 21, 0.25);
-}
-.score-label {
-  font-size: 8px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
-  margin-top: 1px;
-}
-
-.xp-container {
-  width: 100%;
-  margin-top: 4px;
-}
-.xp-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 3px;
-  font-size: 9px;
-  font-weight: 700;
-}
-.xp-title {
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-.xp-numbers {
-  color: var(--text);
-}
-.xp-progress {
-  height: 6px;
-  background: var(--bg);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
-}
-.xp-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #eab308, var(--accent));
-  box-shadow: 0 0 6px rgba(250, 204, 21, 0.5);
-  border-radius: 3px;
-  width: 0%;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ══════════ QUICK STATS GRID (2 rows x 4 columns) ══════════ */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 1px;
-  background-color: var(--border);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.stat-widget {
-  background-color: #111827;
-  padding: 8px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
-}
-.stat-widget:hover {
-  background-color: var(--surface2);
-}
-.stat-header {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-.stat-icon {
-  font-size: 11px;
-}
-.stat-val {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.1;
-}
-.stat-val.highlight {
-  color: var(--accent);
-  text-shadow: 0 0 4px rgba(250, 204, 21, 0.25);
-}
-.stat-label {
-  font-size: 8px;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 2px;
-  font-weight: 600;
-}
-
-/* ══════════ EVOLUTION TRACKER (<60px) ══════════ */
-.evo-tracker {
-  height: 48px;
-  background-color: rgba(17, 24, 39, 0.2);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 28px;
-  position: relative;
-  flex-shrink: 0;
-}
-.evo-line {
-  position: absolute;
-  top: 50%;
-  left: 60px;
-  right: 60px;
-  height: 1px;
-  border-top: 1.5px dashed var(--border);
-  transform: translateY(-50%);
-  z-index: 1;
-}
-.evo-stage {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background-color: var(--bg);
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.evo-stage.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 10px var(--accent-glow);
-  background-color: rgba(250, 204, 21, 0.05);
-}
-.evo-stage.dim {
-  opacity: 0.35;
-}
-.evo-stage-icon {
-  font-size: 13px;
-}
-.evo-stage-meta {
-  display: flex;
-  flex-direction: column;
-}
-.evo-stage-name {
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.1;
-}
-.evo-stage.active .evo-stage-name {
-  color: var(--accent);
-}
-.evo-stage-req {
-  font-size: 7px;
-  color: var(--dim);
-}
-.evo-check {
-  font-size: 8px;
-  color: var(--accent);
-  margin-left: 2px;
-}
-
-/* ══════════ SECTIONS CONTAINER (SCROLLABLE TAB CONTENT) ══════════ */
-.sections {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  background-color: var(--bg);
-}
-.sec {
-  display: none;
-  height: 100%;
-  overflow-y: auto;
-  padding: 12px 14px;
-}
-@keyframes tabEnter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.sec.active {
-  display: flex;
-  flex-direction: column;
-  animation: tabEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.sec-title-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  flex-shrink: 0;
-}
-.sec-title-bar::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-/* ══════════ CAUGHT TAB REDESIGN ══════════ */
-.caught-content {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.caught-wrapper {
-  margin-bottom: 1px;
-}
-.poke-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 48px;
-  padding: 0 12px;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-.poke-card:hover {
-  background-color: var(--surface2);
-  border-color: var(--dim);
-}
-.poke-card.expanded {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  border-color: var(--dim);
-  background-color: var(--surface2);
-}
-.poke-card-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.poke-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  border: 1px solid rgba(255,255,255,0.06);
-}
-.poke-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.poke-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.poke-type {
-  font-size: 8px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  margin-top: 2px;
-  width: max-content;
-  letter-spacing: 0.02em;
-}
-/* Category styles */
-.pi-dev, .pt-dev { background-color: var(--blue-bg); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
-.pi-train, .pt-train { background-color: var(--green-bg); color: #4ade80; border-color: rgba(16,185,129,0.3); }
-.pi-ent, .pt-ent { background-color: var(--red-bg); color: var(--red-txt); border-color: rgba(239,68,68,0.3); }
-.pi-ai, .pt-ai { background-color: var(--purple-bg); color: #c084fc; border-color: rgba(168,85,247,0.3); }
-.pi-social, .pt-social { background-color: rgba(148,163,184,0.12); color: var(--muted); border-color: rgba(148,163,184,0.2); }
-.pi-gen, .pt-gen { background-color: rgba(100,116,139,0.12); color: var(--dim); border-color: rgba(100,116,139,0.2); }
-.pi-net, .pt-net { background-color: rgba(56,189,248,0.12); color: #38bdf8; border-color: rgba(56,189,248,0.2); }
-.pi-res, .pt-res { background-color: rgba(251,146,60,0.12); color: #fb923c; border-color: rgba(251,146,60,0.2); }
-.pi-prod, .pt-prod { background-color: rgba(45,212,191,0.12); color: #2dd4bf; border-color: rgba(45,212,191,0.2); }
-
-.poke-card-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.poke-time {
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 500;
-}
-.poke-xp {
-  font-size: 9.5px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 20px;
-}
-.xp-hi { background-color: var(--green-bg); color: #4ade80; }
-.xp-lo { background-color: var(--red-bg); color: var(--red-txt); }
-.xp-md { background-color: var(--surface2); color: var(--muted); }
-
-/* Clickable details dropdown */
-.poke-details {
-  display: none;
-  background-color: #0d131f;
-  border: 1px solid var(--dim);
-  border-top: none;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-  padding: 10px 14px;
-  animation: slideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.poke-details.visible {
-  display: block;
-}
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.pd-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-.pd-item {
-  display: flex;
-  flex-direction: column;
-}
-.pd-label {
-  font-size: 8px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.pd-val {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text);
-  margin-top: 2px;
-}
-
-/* Usage Donut Chart Panel */
-.usage-panel {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-shrink: 0;
-}
-.donut-container {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-}
-.donut-chart {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  transform: rotate(-90deg);
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.donut-inner {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background-color: var(--surface);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  transform: rotate(90deg);
-}
-.donut-inner-val {
-  font-size: 10.5px;
-  font-weight: 800;
-  color: var(--text);
-}
-.donut-inner-lbl {
-  font-size: 7px;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  margin-top: 1px;
-}
-.donut-legend {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 5px 12px;
-  flex: 1;
-  min-width: 0;
-}
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  min-width: 0;
-}
-.legend-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.legend-name {
-  color: var(--muted);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80px;
-}
-.legend-pct {
-  color: var(--text);
-  font-weight: 700;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-/* YouTube log style */
-.yt-section {
-  margin-top: 12px;
-  flex-shrink: 0;
-}
-.yt-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.yt-item-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-.yt-item-link:hover .yt-item {
-  background-color: var(--surface2);
-  border-color: var(--dim);
-}
-.yt-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  height: 38px;
-  transition: all 0.2s;
-}
-.yt-th {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-.yt-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.yt-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.yt-meta {
-  font-size: 9px;
-  color: var(--dim);
-}
-.yt-tag {
-  font-size: 8px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 20px;
-  text-transform: uppercase;
-}
-.tag-e { background-color: var(--green-bg); color: #4ade80; }
-.tag-n { background-color: var(--red-bg); color: var(--red-txt); }
-
-/* YouTube segmented split bar */
-.yt-split-container {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-top: 6px;
-}
-.split-bar {
-  display: flex;
-  height: 6px;
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-.sp-e { background: linear-gradient(90deg, #059669, var(--green)); }
-.sp-n { background: linear-gradient(90deg, #dc2626, var(--red-txt)); }
-.split-lbl {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9.5px;
-  font-weight: 700;
-}
-.sl-e { color: #4ade80; }
-.sl-n { color: var(--red-txt); }
-
-/* ══════════ ROUTE TAB REDESIGN (TIMELINE) ══════════ */
-.route-list-container {
-  position: relative;
-  padding-left: 18px;
-}
-.route-list-container::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  background: linear-gradient(180deg, var(--border) 0%, rgba(255,255,255,0.12) 50%, var(--border) 100%);
-}
-.route-stop {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px 10px;
-  margin-bottom: 5px;
-  height: 24px;
-  position: relative;
-}
-.route-stop:hover {
-  background-color: var(--surface2);
-  border-color: rgba(255,255,255,0.12);
-}
-.rt-time {
-  font-size: 9.5px;
-  color: var(--muted);
-  font-weight: 700;
-  width: 32px;
-  flex-shrink: 0;
-}
-.rt-dot-anchor {
-  position: absolute;
-  left: -19px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.rt-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--bg);
-  box-shadow: 0 0 6px currentColor;
-}
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 4px currentColor; }
-  100% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px currentColor, 0 0 16px currentColor; }
-}
-.rt-site {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rt-dur {
-  font-size: 9px;
-  color: var(--dim);
-  flex-shrink: 0;
-}
-.rt-xp {
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--accent);
-  flex-shrink: 0;
-  text-align: right;
-  min-width: 36px;
-}
-
-/* ══════════ BATTLES TAB REDESIGN ══════════ */
-.battles-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.battle-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0 10px;
-  height: 30px;
-  transition: background-color 0.2s;
-  flex-shrink: 0;
-}
-.battle-row:hover {
-  background-color: var(--surface2);
-}
-.battle-row.won {
-  border-left: 3px solid var(--green);
-}
-.battle-row.fled {
-  border-left: 3px solid var(--red);
-}
-.b-icon {
-  font-size: 13px;
-  flex-shrink: 0;
-}
-.b-site {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text);
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.b-badge {
-  font-size: 8px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-}
-.bw { background-color: var(--green-bg); color: #4ade80; }
-.bf { background-color: var(--red-bg); color: var(--red-txt); }
-.b-dur {
-  font-size: 9.5px;
-  color: var(--muted);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-.b-xp {
-  font-size: 9.5px;
-  font-weight: 700;
-  flex-shrink: 0;
-  text-align: right;
-  min-width: 44px;
-}
-.bxw { color: var(--accent); }
-.bxf { color: var(--dim); }
-
-/* ══════════ GYM TAB REDESIGN ══════════ */
-.gym-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-shrink: 0;
-}
-.gym-b {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  aspect-ratio: 1 / 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  text-align: center;
-  position: relative;
-  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
-}
-.gym-b.won {
-  border-color: var(--accent);
-  background: radial-gradient(circle at center, rgba(250,204,21,0.06) 0%, var(--surface) 100%);
-  box-shadow: 0 0 8px var(--accent-glow);
-}
-.gym-b.won:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 12px rgba(250,204,21,0.25);
-}
-.gym-b.locked {
-  opacity: 0.35;
-  background-color: rgba(17, 24, 39, 0.4);
-}
-.gb-ico {
-  font-size: 22px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
-.gym-b.won .gb-ico {
-  filter: drop-shadow(0 0 6px rgba(250,204,21,0.4));
-}
-.gb-nm {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--muted);
-  margin-top: 5px;
-  line-height: 1.1;
-}
-.gym-b.won .gb-nm {
-  color: var(--accent);
-}
-.gb-st {
-  font-size: 7.5px;
-  color: var(--dim);
-  text-transform: uppercase;
-  margin-top: 2px;
-  letter-spacing: 0.02em;
-}
-.gym-b.won .gb-st {
-  color: #fb923c;
-  font-weight: 600;
-}
-
-.gh-panel {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  flex-shrink: 0;
-}
-.gh-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.ghr-ico {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-  border: 1px solid rgba(59,130,246,0.2);
-}
-.gh-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.ghr-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
-}
-.ghr-sub {
-  font-size: 9px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.ghr-xp {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--accent);
-}
-
-/* ══════════ OAK TAB REDESIGN ══════════ */
-#oak.sec.active {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.oak-scrollable {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 12px;
-}
-.oak-fixed-footer {
-  flex-shrink: 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  background-color: var(--bg);
-}
-
-.analytics-card {
-  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-.oak-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.oak-av {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background-color: var(--blue-bg);
-  border: 1px solid rgba(59,130,246,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  flex-shrink: 0;
-}
-.oak-meta-info {
-  display: flex;
-  flex-direction: column;
-}
-.oak-ttl {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--blue);
-}
-.oak-sub {
-  font-size: 9.5px;
-  color: var(--muted);
-}
-.oak-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px 14px;
-}
-.oak-stat {
-  display: flex;
-  justify-content: space-between;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 10.5px;
-}
-.oak-stat:nth-last-child(-n+2) {
-  border-bottom: none;
-}
-.oak-k {
-  color: var(--muted);
-}
-.oak-v {
-  font-weight: 700;
-  color: var(--text);
-}
-
-/* Terminal Card Style */
-.terminal-card {
-  background-color: #050b14;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-}
-.terminal-header {
-  height: 24px;
-  background-color: #0f172a;
-  border-bottom: 1px solid #1e293b;
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.term-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-.term-dot.red { background-color: #ef4444; }
-.term-dot.yellow { background-color: #f59e0b; }
-.term-dot.green { background-color: #10b981; }
-.term-title {
-  margin-left: 6px;
-  font-size: 8px;
-  font-family: monospace;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.terminal-body {
-  padding: 12px;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  min-height: 90px;
-}
-.oak-result {
-  color: #34d399; /* terminal green */
-}
-.oak-result.oak-err {
-  color: var(--red-txt);
-}
-.oak-loading {
-  color: var(--accent);
-  animation: termPulse 1.5s infinite alternate;
-}
-@keyframes termPulse {
-  0% { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-
-.gen-btn {
-  width: 100%;
-  height: 40px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 800;
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  transition: all 0.2s;
-  box-shadow: 0 4px 6px rgba(37,99,235,0.2);
-}
-.gen-btn:hover {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  box-shadow: 0 6px 12px rgba(37,99,235,0.4);
-  transform: translateY(-1px);
-}
-.gen-btn:active {
-  transform: translateY(0);
-}
-.gen-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* ══════════ EMPTY CONTAINER ══════════ */
-.empty {
-  text-align: center;
-  padding: 20px 12px;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.ei {
-  font-size: 26px;
-  margin-bottom: 6px;
-}
-.et {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text);
-}
-.es {
-  font-size: 9.5px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-/* ══════════ FIXED BOTTOM NAVIGATION ══════════ */
-.nav {
-  height: 52px;
-  display: flex;
-  background-color: #0f172a;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  position: relative;
-}
-.nav-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  transition: all 0.2s;
-  position: relative;
-  z-index: 5;
-  outline: none;
-}
-.nav-btn .ni {
-  font-size: 13px;
-  margin-bottom: 2px;
-  transition: transform 0.2s;
-}
-.nav-btn:hover {
-  color: var(--text);
-}
-.nav-btn:hover .ni {
-  transform: translateY(-1px);
-}
-.nav-btn.active {
-  color: var(--accent);
-}
-/* Sliding active indicator (pure CSS underline) */
-.nav-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background-color: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
-  border-radius: 2px 2px 0 0;
-}
-
-/* ══════════ FIXED STATUS BAR ══════════ */
-.bottom-bar {
-  height: 30px;
-  background-color: var(--bg);
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  border-top: 1px solid var(--border);
-}
-.dpad {
-  display: grid;
-  grid-template-columns: repeat(3, 6px);
-  grid-template-rows: repeat(3, 6px);
-  gap: 1px;
-}
-.dp {
-  background-color: var(--surface2);
-  border-radius: 1px;
-}
-.dpc {
-  background-color: var(--dim);
-  border-radius: 50%;
-}
-.version {
-  font-size: 8px;
-  font-weight: 800;
-  color: var(--dim);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.ab {
-  display: flex;
-  gap: 4px;
-}
-.abt {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-/* ══════════ SETTINGS MODAL ══════════ */
-.modal {
-  display: none;
-  position: absolute;
-  inset: 0;
-  background-color: rgba(11, 18, 32, 0.85);
-  backdrop-filter: blur(4px);
-  z-index: 100;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  animation: fadeIn 0.2s ease;
-}
-.modal.visible {
-  display: flex;
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.modal-content {
-  background-color: var(--surface);
-  border: 1px solid var(--border-focus);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 15px var(--accent-glow);
-  overflow: hidden;
-  animation: scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes scaleUp {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-.modal-header {
-  padding: 14px 16px;
-  background-color: var(--surface2);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.modal-header h3 {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 20px;
-  line-height: 1;
-  outline: none;
-}
-.close-btn:hover {
-  color: var(--accent);
-}
-.modal-body {
-  padding: 16px;
-}
-.key-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-.key-row label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.key-row input,
-.key-row select {
-  background-color: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 12px;
-  color: var(--text);
-  outline: none;
-  font-family: monospace;
-}
-.key-row input:focus,
-.key-row select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 6px var(--accent-glow);
-}
-.setting-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-.setting-toggle span {
-  display: block;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--ink);
-}
-.setting-toggle small {
-  display: block;
-  margin-top: 2px;
-  font-size: 9px;
-  color: var(--muted);
-  line-height: 1.35;
-}
-.setting-toggle input {
-  width: 42px;
-  height: 22px;
-  accent-color: var(--accent);
-  flex: 0 0 auto;
-}
-.settings-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-top: 6px;
-}
-.secondary-btn {
-  height: 38px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface2);
-  color: var(--ink);
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.secondary-btn:hover {
-  border-color: var(--border-focus);
-  background: #fff7dc;
-}
-.settings-tip {
-  font-size: 9px;
-  color: var(--dim);
-  margin-top: 10px;
-  line-height: 1.4;
-}
-
-/* Fresh dashboard skin */
-:root {
-  --bg: #eef4f2;
-  --surface: #ffffff;
-  --surface2: #f4f7f6;
-  --ink: #1d252c;
-  --text: #1d252c;
-  --muted: #64706d;
-  --dim: #8a9692;
-  --border: rgba(29, 37, 44, 0.1);
-  --border-focus: rgba(244, 180, 0, 0.38);
-  --accent: #f4b400;
-  --accent-glow: rgba(244, 180, 0, 0.18);
-  --green: #25a46f;
-  --green-bg: rgba(37, 164, 111, 0.12);
-  --red: #dd4b4b;
-  --red-bg: rgba(221, 75, 75, 0.11);
-  --red-txt: #c93b3b;
-  --blue: #3166d4;
-  --blue-bg: rgba(49, 102, 212, 0.1);
-  --purple: #7c5cc4;
-  --purple-bg: rgba(124, 92, 196, 0.1);
-}
-body {
-  background: var(--bg);
-  color: var(--text);
-}
-.shell {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.88), rgba(238,244,242,.98)),
-    var(--bg);
-}
-.header {
-  height: 56px;
-  padding: 0 14px;
-  background: rgba(255,255,255,.94);
-  border-bottom: 1px solid var(--border);
-}
-.pokedex-eye {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  background: #1d252c;
-  border: 0;
-  box-shadow: none;
-  animation: none;
-}
-.pokedex-eye::after {
-  top: 6px;
-  left: 6px;
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-}
-.header-title {
-  color: var(--ink);
-  background: none;
-  -webkit-text-fill-color: currentColor;
-  letter-spacing: 0;
-  text-transform: none;
-  font-size: 16px;
-}
-.header-subtitle {
-  color: var(--muted);
-}
-.header-lvl {
-  color: var(--ink);
-}
-.settings-trigger {
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface2);
-  color: var(--ink);
-  font-size: 14px;
-}
-.settings-trigger:hover {
-  background: #fff7dc;
-  color: #7a5520;
-  transform: translateY(-1px);
-}
-.trainer-hero {
-  height: 132px;
-  margin: 10px 10px 0;
-  padding: 14px;
-  background: linear-gradient(135deg, #ffffff 0%, #f7fbfa 100%);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(29,37,44,.08);
-}
-.sprite-container {
-  width: 76px;
-  height: 76px;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  animation: floatOrb 4s ease-in-out infinite;
-}
-.sprite-ring {
-  display: none;
-}
-.sprite-svg {
-  width: 76px;
-  height: 76px;
-  filter: drop-shadow(0 8px 10px rgba(29,37,44,.18));
-}
-.trainer-meta-title {
-  color: var(--ink);
-  font-size: 17px;
-}
-.trainer-meta-desc {
-  color: var(--muted);
-  font-size: 10.5px;
-}
-.score-badge {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  background: #1d252c;
-  border: 0;
-  box-shadow: none;
-}
-.score-badge::before {
-  display: none;
-}
-.score-value {
-  color: var(--accent);
-  text-shadow: none;
-}
-.score-label {
-  color: rgba(255,255,255,.72);
-}
-.xp-title,
-.xp-numbers {
-  color: var(--ink);
-}
-.xp-progress {
-  height: 7px;
-  background: #dfe8e5;
-  border: 0;
-  border-radius: 999px;
-}
-.xp-progress-bar {
-  background: linear-gradient(90deg, var(--green), var(--accent));
-  box-shadow: none;
-  border-radius: 999px;
-}
-.stats-grid {
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin: 10px;
-  background: transparent;
-  border: 0;
-}
-.stat-widget {
-  min-height: 52px;
-  padding: 8px 6px;
-  background: rgba(255,255,255,.86);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-}
-.stat-widget:hover {
-  background: #fff;
-  transform: translateY(-1px);
-}
-.stat-header {
-  color: var(--muted);
-}
-.stat-val {
-  color: var(--ink);
-}
-.stat-val.highlight {
-  color: var(--green);
-  text-shadow: none;
-}
-.stat-label {
-  color: var(--muted);
-}
-.evo-tracker {
-  height: 44px;
-  margin: 0 10px 8px;
-  padding: 0 8px;
-  background: transparent;
-  border: 0;
-  gap: 7px;
-}
-.evo-line {
-  display: none;
-}
-.evo-stage {
-  flex: 1;
-  min-width: 0;
-  border-radius: 12px;
-  background: rgba(255,255,255,.78);
-  border: 1px solid var(--border);
-  padding: 6px 8px;
-}
-.evo-stage.active {
-  background: #fff7dc;
-  border-color: var(--border-focus);
-  box-shadow: none;
-}
-.evo-stage.dim {
-  opacity: .62;
-}
-.evo-stage-name {
-  color: var(--ink);
-}
-.evo-stage.active .evo-stage-name {
-  color: #7a5520;
-}
-.evo-stage-req {
-  color: var(--muted);
-}
-.sections {
-  background: transparent;
-}
-.sec {
-  padding: 0 10px 12px;
-}
-.sec-title-bar {
-  margin: 4px 0 9px;
-  color: var(--muted);
-  letter-spacing: .04em;
-}
-.sec-title-bar::after {
-  background: var(--border);
-}
-.focus-deck {
-  display: grid;
-  grid-template-columns: 1.1fr .9fr;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.deck-main,
-.deck-side {
-  border-radius: 18px;
-}
-.deck-main {
-  padding: 14px;
-  background: #1d252c;
-  color: #fff;
-  min-height: 118px;
-}
-.deck-kicker {
-  font-size: 10px;
-  font-weight: 800;
-  color: rgba(255,255,255,.68);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
-.deck-value {
-  margin-top: 8px;
-  font-size: 30px;
-  line-height: 1;
-  font-weight: 900;
-  color: #fff;
-}
-.deck-label {
-  margin-top: 4px;
-  font-size: 10.5px;
-  color: rgba(255,255,255,.7);
-}
-.deck-progress {
-  margin-top: 14px;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.16);
-  overflow: hidden;
-}
-#deck-focus-progress {
-  width: 0%;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #4ade80, #f4b400);
-  transition: width .45s ease;
-}
-.deck-side {
-  display: grid;
-  gap: 8px;
-}
-.deck-mini {
-  padding: 11px 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.9);
-  border: 1px solid var(--border);
-  min-width: 0;
-}
-.deck-mini-label {
-  display: block;
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-.deck-mini-value {
-  display: block;
-  margin-top: 5px;
-  color: var(--ink);
-  font-size: 12px;
-  line-height: 1.2;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.quest-row {
-  display: flex;
-  gap: 7px;
-  margin-bottom: 12px;
-}
-.quest-pill {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.82);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.quest-pill.done {
-  background: var(--green-bg);
-  color: #16784f;
-  border-color: rgba(37,164,111,.25);
-}
-.quest-pill.warn {
-  background: var(--red-bg);
-  color: var(--red-txt);
-}
-.caught-content,
-.battles-list,
-.yt-list {
-  gap: 8px;
-}
-.poke-card,
-.usage-panel,
-.yt-item,
-.yt-split-container,
-.route-stop,
-.battle-row,
-.gym-b,
-.gh-panel,
-.analytics-card,
-.terminal-card,
-.empty {
-  background: rgba(255,255,255,.9);
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 22px rgba(29,37,44,.055);
-}
-.poke-card {
-  height: 54px;
-  border-radius: 16px;
-}
-.poke-card:hover,
-.poke-card.expanded,
-.yt-item-link:hover .yt-item,
-.route-stop:hover,
-.battle-row:hover {
-  background: #fff;
-  border-color: rgba(29,37,44,.18);
-}
-.poke-icon {
-  border-radius: 12px;
-}
-.poke-name,
-.rt-site,
-.b-site,
-.ghr-name,
-.et,
-.oak-v {
-  color: var(--ink);
-}
-.poke-time,
-.rt-dur,
-.yt-meta,
-.es,
-.ghr-sub,
-.oak-k {
-  color: var(--muted);
-}
-.poke-details {
-  background: #fff;
-  border-color: rgba(29,37,44,.18);
-}
-.usage-panel {
-  border-radius: 18px;
-}
-.donut-inner {
-  background: #fff;
-}
-.donut-inner-val {
-  color: var(--ink);
-}
-.route-list-container::before {
-  background: rgba(29,37,44,.12);
-}
-.route-stop {
-  height: 34px;
-  border-radius: 14px;
-}
-.battle-row {
-  height: 38px;
-  border-radius: 14px;
-}
-.gym-grid {
-  gap: 9px;
-}
-.gym-b {
-  border-radius: 16px;
-}
-.gym-b.won {
-  background: #fff7dc;
-  border-color: var(--border-focus);
-  box-shadow: none;
-}
-.gym-b.locked {
-  opacity: .58;
-}
-.gh-panel {
-  border-radius: 18px;
-}
-#oak.sec.active {
-  padding-bottom: 0;
-}
-.analytics-card {
-  background: rgba(255,255,255,.92);
-  border-radius: 18px;
-}
-.oak-av {
-  background: var(--blue-bg);
-  border-radius: 12px;
-}
-.terminal-card {
-  background: #17211f;
-  border-radius: 18px;
-  overflow: hidden;
-}
-.terminal-header {
-  background: #101917;
-  border-bottom-color: rgba(255,255,255,.08);
-}
-.terminal-body {
-  color: #d8f3e8;
-}
-.oak-result {
-  color: #bcead7;
-}
-.gen-btn {
-  height: 42px;
-  border-radius: 14px;
-  background: #1d252c;
-  box-shadow: none;
-}
-.gen-btn:hover {
-  background: #2a353d;
-  box-shadow: none;
-}
-.nav {
-  height: 56px;
-  margin: 0 10px 10px;
-  background: rgba(255,255,255,.9);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  overflow: hidden;
-}
-.nav-btn {
-  color: var(--muted);
-  text-transform: none;
-  letter-spacing: 0;
-}
-.nav-btn.active {
-  color: var(--ink);
-  background: #fff7dc;
-}
-.nav-btn.active::after {
-  left: 34%;
-  right: 34%;
-  bottom: 6px;
-  background: var(--accent);
-  box-shadow: none;
-}
-.bottom-bar {
-  display: none;
-}
-.modal {
-  background: rgba(29,37,44,.42);
-}
-.modal-content {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: 0 24px 60px rgba(29,37,44,.22);
-}
-.modal-header {
-  background: var(--surface2);
-}
-.modal-header h3 {
-  color: var(--ink);
-  text-transform: none;
-  letter-spacing: 0;
-}
-.key-row input,
-.key-row select {
-  background: var(--surface2);
-  border-color: var(--border);
-  color: var(--ink);
-  border-radius: 12px;
-}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="popup.css">
 </head>
 <body>
 <div class="shell">
@@ -2027,131 +14,147 @@ body {
   <!-- HEADER -->
   <div class="header">
     <div class="header-left">
-      <div class="pokedex-eye"></div>
+      <div class="pokedex-indicator">
+        <div class="pi-main-eye"></div>
+        <div class="pi-small-row">
+          <div class="pi-dot pi-dot-red"></div>
+          <div class="pi-dot pi-dot-yellow"></div>
+          <div class="pi-dot pi-dot-green"></div>
+        </div>
+      </div>
       <div class="header-center">
         <span class="header-title">PikaDex</span>
-        <span class="header-subtitle">Trainer</span>
+        <span class="header-subtitle" id="header-trainer-name">Trainer</span>
       </div>
     </div>
     <div class="header-right">
       <div class="header-badge">
-        <span class="header-lvl" id="t-level">Level —</span>
+        <span class="header-lvl" id="t-level">Level -</span>
       </div>
-      <button class="settings-trigger" id="sync-header-btn" title="Sync Account Profiles">🔄</button>
-      <button class="settings-trigger" id="settings-btn" title="System Settings">⚙️</button>
+      <button class="icon-btn" id="sync-header-btn" title="Sync Account Profiles">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <button class="icon-btn" id="settings-btn" title="Settings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
     </div>
   </div>
 
   <!-- TRAINER HERO PANEL -->
   <div class="trainer-hero">
+    <div class="trainer-hero-bg">
+      <div class="hero-pixel-ground"></div>
+      <div class="hero-sparks" id="hero-sparks"></div>
+    </div>
+
     <div class="trainer-main">
-      <div class="sprite-container" id="home-orb">
-        <div class="sprite-ring"></div>
-        <svg id="orb-svg" class="sprite-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="Sitting Pikachu">
-          <path d="M30 32 L18 6 L43 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 32 L102 6 L77 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M23 10 L18 6 L27 26 Z" fill="#2c211b"/>
-          <path d="M97 10 L102 6 L93 26 Z" fill="#2c211b"/>
-          <ellipse cx="60" cy="55" rx="38" ry="34" fill="#ffd94a" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="60" cy="82" rx="34" ry="25" fill="#f8c83e" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="39" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <ellipse cx="81" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <circle cx="42" cy="55" r="2.5" fill="#fff7d6"/>
-          <circle cx="84" cy="55" r="2.5" fill="#fff7d6"/>
-          <ellipse cx="31" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <ellipse cx="89" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <path d="M56 67 L60 71 L64 67" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M52 75 Q60 81 68 75" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <path d="M30 87 Q16 91 18 104 Q36 105 43 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 87 Q104 91 102 104 Q84 105 77 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M42 101 Q31 112 47 114 Q58 113 56 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M78 101 Q89 112 73 114 Q62 113 64 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M88 82 L111 69 L100 67 L113 53 L94 60" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <ellipse cx="60" cy="115" rx="37" ry="5" fill="rgba(30,23,19,.2)"/>
-        </svg>
+      <!-- PIXEL MASCOT STAGE -->
+      <div class="mascot-stage" id="mascot-stage">
+        <div class="mascot-shadow"></div>
+        <div class="pixel-mascot" id="pixel-mascot">
+          <!-- Pixel art rendered via JS -->
+          <canvas id="mascot-canvas" width="256" height="256"></canvas>
+        </div>
+        <div class="mascot-sparkles" id="mascot-sparkles"></div>
       </div>
+
       <div class="trainer-meta">
-        <span class="trainer-meta-title">Trainer</span>
-        <span class="trainer-meta-desc">Productivity HUD Operating System</span>
+        <span class="trainer-meta-name" id="trainer-meta-name">Trainer</span>
+        <span class="trainer-meta-evo" id="trainer-meta-evo">Pichu Stage</span>
+        <div class="trainer-streak" id="trainer-streak-display">
+          <span class="streak-fire">🔥</span>
+          <span class="streak-count" id="streak-val">0</span>
+          <span class="streak-label">day streak</span>
+        </div>
       </div>
-      <div class="score-badge">
-        <span class="score-value" id="ss-score">—</span>
+
+      <div class="score-badge" id="score-badge">
+        <div class="score-ring"></div>
+        <span class="score-value" id="ss-score">-</span>
         <span class="score-label">Score</span>
       </div>
     </div>
+
     <div class="xp-container">
       <div class="xp-info">
         <span class="xp-title">⚡ Focus XP</span>
         <span class="xp-numbers" id="xp-num">0 / 500</span>
       </div>
-      <div class="xp-progress">
-        <div class="xp-progress-bar" id="xp-bar" style="width:0%"></div>
+      <div class="xp-track">
+        <div class="xp-progress-bar" id="xp-bar"></div>
+        <div class="xp-glow"></div>
       </div>
     </div>
   </div>
 
   <!-- QUICK STATS GRID -->
   <div class="stats-grid">
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">🔥</span><span class="stat-val" id="ss-streak">0</span></span>
+    <div class="stat-widget" id="sw-streak">
+      <span class="stat-icon">🔥</span>
+      <span class="stat-val" id="ss-streak">0</span>
       <span class="stat-label">Streak</span>
     </div>
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">⏱️</span><span class="stat-val highlight" id="ss-time">0m</span></span>
+    <div class="stat-widget" id="sw-time">
+      <span class="stat-icon">⏱</span>
+      <span class="stat-val accent" id="ss-time">0m</span>
       <span class="stat-label">Focus</span>
     </div>
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">💻</span><span class="stat-val" id="ss-leet-today">0</span></span>
+    <div class="stat-widget" id="sw-leet">
+      <span class="stat-icon">💻</span>
+      <span class="stat-val" id="ss-leet-today">0</span>
       <span class="stat-label">LC Today</span>
     </div>
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">🐙</span><span class="stat-val" id="ss-gh-today">0</span></span>
-      <span class="stat-label">GH Today</span>
+    <div class="stat-widget" id="sw-gh">
+      <span class="stat-icon">🐙</span>
+      <span class="stat-val" id="ss-gh-today">0</span>
+      <span class="stat-label">Commits</span>
     </div>
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">⚡</span><span class="stat-val" id="ss-xp-earned">0</span></span>
-      <span class="stat-label">XP Earned</span>
+    <div class="stat-widget" id="sw-xp">
+      <span class="stat-icon">⭐</span>
+      <span class="stat-val" id="ss-xp-earned">0</span>
+      <span class="stat-label">XP Today</span>
     </div>
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">▶️</span><span class="stat-val" id="ss-vids-watched">0</span></span>
+    <div class="stat-widget" id="sw-vids">
+      <span class="stat-icon">▶️</span>
+      <span class="stat-val" id="ss-vids-watched">0</span>
       <span class="stat-label">Videos</span>
     </div>
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">⚔️</span><span class="stat-val" id="ss-battles-won">0</span></span>
-      <span class="stat-label">Battles Won</span>
+    <div class="stat-widget" id="sw-battles">
+      <span class="stat-icon">⚔️</span>
+      <span class="stat-val" id="ss-battles-won">0</span>
+      <span class="stat-label">Battles</span>
     </div>
-    <div class="stat-widget">
-      <span class="stat-header"><span class="stat-icon">🏆</span><span class="stat-val" id="ss-leet">0</span></span>
+    <div class="stat-widget" id="sw-leet-all">
+      <span class="stat-icon">🏆</span>
+      <span class="stat-val" id="ss-leet">0</span>
       <span class="stat-label">LC Solved</span>
     </div>
   </div>
 
   <!-- EVOLUTION TRACKER -->
   <div class="evo-tracker">
-    <div class="evo-line"></div>
     <div class="evo-stage dim" id="en-pichu">
-      <span class="evo-stage-icon">🐭</span>
+      <span class="evo-pip"></span>
       <div class="evo-stage-meta">
         <span class="evo-stage-name">Pichu</span>
         <span class="evo-stage-req">Default</span>
       </div>
-      <div class="evo-check" style="display:none">▶</div>
     </div>
+    <div class="evo-arrow">→</div>
     <div class="evo-stage dim" id="en-pikachu">
-      <span class="evo-stage-icon">⚡</span>
+      <span class="evo-pip"></span>
       <div class="evo-stage-meta">
         <span class="evo-stage-name">Pikachu</span>
-        <span class="evo-stage-req">3h today</span>
+        <span class="evo-stage-req">3h focus</span>
       </div>
-      <div class="evo-check" style="display:none">▶</div>
     </div>
+    <div class="evo-arrow">→</div>
     <div class="evo-stage dim" id="en-raichu">
-      <span class="evo-stage-icon">⚡</span>
+      <span class="evo-pip"></span>
       <div class="evo-stage-meta">
         <span class="evo-stage-name">Raichu</span>
-        <span class="evo-stage-req">10h today</span>
+        <span class="evo-stage-req">10h focus</span>
       </div>
-      <div class="evo-check" style="display:none">▶</div>
     </div>
   </div>
 
@@ -2185,9 +188,9 @@ body {
         <div class="quest-pill" id="quest-balance">Balance ready</div>
       </div>
       <div id="caught-list" class="caught-content"></div>
-      
+
       <!-- Usage Donut Chart Panel -->
-      <div class="sec-title-bar" style="margin-top:14px">Usage Breakdown</div>
+      <div class="sec-title-bar panel-heading-spaced">Usage Breakdown</div>
       <div class="usage-panel">
         <div class="donut-container">
           <div class="donut-chart" id="usage-donut-chart">
@@ -2201,19 +204,19 @@ body {
       </div>
 
       <!-- YouTube Media Summary -->
-      <div id="yt-wrap" class="yt-section" style="display:none">
+      <div id="yt-wrap" class="yt-section hidden">
         <div class="sec-title-bar">Media Log</div>
         <div id="yt-list" class="yt-list"></div>
         <div class="yt-split-container">
           <div class="split-bar">
-            <div class="sp-e" id="sp-edu" style="width:50%"></div>
-            <div class="sp-n" id="sp-ent" style="width:50%"></div>
+            <div class="sp-e" id="sp-edu"></div>
+            <div class="sp-n" id="sp-ent"></div>
           </div>
           <div class="split-lbl">
             <span class="sl-e" id="sp-el">Edu 50%</span>
             <span class="sl-n" id="sp-nl">Ent 50%</span>
           </div>
-          <div id="yt-stats-summary" style="display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 5px;">
+          <div id="yt-stats-summary" class="yt-stats-summary">
             <span id="yt-edu-count">Edu: 0 vids</span>
             <span id="yt-ent-count">Ent: 0 vids</span>
             <span id="yt-watch-time">Watch Time: 0m</span>
@@ -2238,8 +241,8 @@ body {
     <div id="gym" class="sec">
       <div class="sec-title-bar">LeetCode Gym</div>
       <div class="gym-grid" id="gym-grid"></div>
-      <div class="sec-title-bar" style="margin-top: 12px;">Problems Visited Today</div>
-      <div class="gh-panel" id="lc-problems" style="margin-bottom: 12px;"></div>
+      <div class="sec-title-bar panel-heading-tight">Problems Visited Today</div>
+      <div class="gh-panel panel-spaced" id="lc-problems"></div>
       <div class="sec-title-bar">GitHub Region</div>
       <div class="gh-panel" id="gh-region"></div>
     </div>
@@ -2252,12 +255,12 @@ body {
             <div class="oak-av">🔬</div>
             <div class="oak-meta-info">
               <span class="oak-ttl">Professor Oak</span>
-              <span class="oak-sub" id="oak-date">—</span>
+              <span class="oak-sub" id="oak-date">-</span>
             </div>
           </div>
           <div class="oak-stats-grid" id="oak-stats"></div>
         </div>
-        
+
         <!-- Terminal Report Card -->
         <div class="terminal-card">
           <div class="terminal-header">
@@ -2270,11 +273,11 @@ body {
             <div id="oak-result" class="oak-result">
               Collect some data first, then hit the button below for your AI report.
             </div>
-            <div id="oak-loading" class="oak-loading" style="display:none">> PROFESSOR OAK IS ANALYZING YOUR DATA...</div>
+            <div id="oak-loading" class="oak-loading hidden">> PROFESSOR OAK IS ANALYZING YOUR DATA...</div>
           </div>
         </div>
       </div>
-      
+
       <div class="oak-fixed-footer">
         <button class="gen-btn" id="oak-btn">⚡ Generate Oak's Report</button>
       </div>
@@ -2284,25 +287,26 @@ body {
 
   <!-- FIXED BOTTOM NAVIGATION -->
   <div class="nav">
-    <button class="nav-btn active" data-tab="caught"><span class="ni">⚡</span>Caught</button>
-    <button class="nav-btn" data-tab="route"><span class="ni">🗺️</span>Route</button>
-    <button class="nav-btn" data-tab="battles"><span class="ni">⚔️</span>Battles</button>
-    <button class="nav-btn" data-tab="gym"><span class="ni">🏅</span>Gym</button>
-    <button class="nav-btn" data-tab="oak"><span class="ni">🔬</span>Oak</button>
-  </div>
-
-  <!-- FIXED STATUS BAR -->
-  <div class="bottom-bar">
-    <div class="dpad">
-      <div></div><div class="dp"></div><div></div>
-      <div class="dp"></div><div class="dpc"></div><div class="dp"></div>
-      <div></div><div class="dp"></div><div></div>
-    </div>
-    <div class="version">Trainer · v2.1</div>
-    <div class="ab">
-      <div class="abt" style="background:#ef4444"></div>
-      <div class="abt" style="background:#3b82f6"></div>
-    </div>
+    <button class="nav-btn active" data-tab="caught" id="nav-caught">
+      <span class="ni">🎣</span>
+      <span>Caught</span>
+    </button>
+    <button class="nav-btn" data-tab="route" id="nav-route">
+      <span class="ni">🗺️</span>
+      <span>Route</span>
+    </button>
+    <button class="nav-btn" data-tab="battles" id="nav-battles">
+      <span class="ni">⚔️</span>
+      <span>Battles</span>
+    </button>
+    <button class="nav-btn" data-tab="gym" id="nav-gym">
+      <span class="ni">🏋️</span>
+      <span>Gym</span>
+    </button>
+    <button class="nav-btn" data-tab="oak" id="nav-oak">
+      <span class="ni">🔬</span>
+      <span>Oak</span>
+    </button>
   </div>
 
 </div>
@@ -2311,34 +315,39 @@ body {
 <div id="settings-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>System Settings</h3>
+      <h3>⚙️ Settings</h3>
       <button class="close-btn" id="close-settings">&times;</button>
     </div>
-    <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto;">
+    <div class="modal-body">
       <div class="key-row">
         <label for="api-key">Anthropic API Key</label>
-        <input type="password" id="api-key" placeholder="sk-ant-api03-..."/>
+        <div class="input-with-icon">
+          <svg class="input-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="api-key" placeholder="sk-ant-api03-..."/>
+        </div>
       </div>
-      
+
       <div class="key-row">
         <label for="trainer-name">Trainer Name</label>
         <input type="text" id="trainer-name" placeholder="e.g. Red"/>
       </div>
 
       <div class="key-row">
-        <label for="partner-pokemon">Partner Pokemon</label>
-        <select id="partner-pokemon" disabled title="More partners are planned after v1.">
-          <option value="pikachu">Pikachu - v1 buddy</option>
+        <label for="partner-pokemon">Partner Pokémon</label>
+        <select id="partner-pokemon" disabled title="More partners planned after v1.">
+          <option value="pikachu">Pikachu — v1 buddy</option>
         </select>
       </div>
 
       <label class="setting-toggle" for="tracking-paused">
         <span>
-          Tracking Paused
-          <small>Keep the companion visible, but stop saving page, video, and focus activity.</small>
+          Pause Tracking
+          <small>Keep companion visible, stop saving activity data.</small>
         </span>
         <input type="checkbox" id="tracking-paused"/>
       </label>
+
+      <div class="settings-divider">Coding Profiles</div>
 
       <div class="key-row">
         <label for="leetcode-username">LeetCode Username</label>
@@ -2365,53 +374,53 @@ body {
         <input type="text" id="hackerrank-username" placeholder="e.g. hr_user"/>
       </div>
 
-      <button id="sync-now-btn" class="gen-btn" style="margin-top: 6px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 6px rgba(16,185,129,0.2);">🔄 Sync Accounts Now</button>
-      <div id="sync-status" style="font-size: 10px; text-align: center; color: #10b981; margin-top: 4px; display: none; font-weight: bold;">Syncing...</div>
+      <button id="sync-now-btn" class="gen-btn sync-primary-btn">🔄 Sync Accounts Now</button>
+      <div id="sync-status" class="sync-status">Syncing...</div>
 
       <div class="settings-actions">
-        <button id="export-data-btn" class="secondary-btn">Export All Data</button>
-        <div id="export-status" style="font-size: 10px; text-align: center; color: var(--muted); display: none; font-weight: bold;"></div>
+        <button id="export-data-btn" class="secondary-btn">📦 Export All Data</button>
+        <div id="export-status" class="export-status"></div>
       </div>
 
       <div class="settings-tip">
-        Profile handles and the Oak API key are stored locally. The key is only sent to Anthropic when you generate a report.
+        🔒 All data stored locally. API key only sent to Anthropic when generating Oak's report.
       </div>
     </div>
   </div>
 </div>
 
 <!-- ONBOARDING OVERLAY -->
-<div id="onboarding-overlay" style="display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 40px 32px; text-align: center; background: radial-gradient(circle at center, #111827 0%, #0b1220 100%); position: absolute; top: 0; left: 0; z-index: 10000;">
-  <div style="position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 20px 20px; pointer-events: none; opacity: 0.7;"></div>
+<div id="onboarding-overlay" class="onboarding-overlay">
+  <div class="onboarding-particles" id="ob-particles"></div>
 
-  <div style="background: linear-gradient(135deg, rgba(26, 36, 53, 0.9) 0%, rgba(17, 24, 39, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 40px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(250, 204, 21, 0.05); position: relative; width: 100%; max-width: 380px;">
-    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #facc15, #ffedd5, #facc15); border-top-left-radius: 16px; border-top-right-radius: 16px;"></div>
-
-    <div style="width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, var(--surface2) 0%, var(--bg) 100%); border: 2px solid var(--accent); box-shadow: 0 0 15px var(--accent-glow); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto;">
-      <svg style="width: 56px; height: 56px; filter: drop-shadow(0 0 4px rgba(250,204,21,0.3));" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="28,38 18,10 38,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-        <polygon points="72,38 82,10 62,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-        <rect x="24" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(-15,28,18)"/>
-        <rect x="68" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(15,72,18)"/>
-        <ellipse cx="50" cy="53" rx="26" ry="24" fill="#FFD700"/>
-        <circle cx="38" cy="47" r="6" fill="#fff"/><circle cx="62" cy="47" r="6" fill="#fff"/>
-        <circle cx="39.5" cy="48" r="3.5" fill="#1a1a1a"/><circle cx="63.5" cy="48" r="3.5" fill="#1a1a1a"/>
-        <circle cx="41" cy="46.5" r="1.2" fill="#fff"/><circle cx="64.5" cy="46.5" r="1.2" fill="#fff"/>
-        <ellipse cx="36" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
-        <ellipse cx="64" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
-        <path d="M44 61 Q50 66 56 61" stroke="#c8a000" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <ellipse cx="50" cy="74" rx="16" ry="7" fill="#c8a000"/>
-        <path d="M60 71 L82 56 L74 55 L84 42 L68 47" fill="#FFD700" stroke="#c8a000" stroke-width="1.5" stroke-linejoin="round"/>
-      </svg>
+  <div class="onboarding-card">
+    <div class="onboarding-mascot">
+      <canvas id="ob-mascot-canvas" width="256" height="256"></canvas>
+      <div class="ob-mascot-glow"></div>
     </div>
 
-    <h2 style="font-size: 20px; font-weight: 900; background: linear-gradient(90deg, var(--accent), #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; letter-spacing: 0.02em;">Welcome to PikaDex! ⚡</h2>
-    
-    <p style="font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 28px; font-weight: 500;">
-      Unlock your productivity potential. Please name your Trainer and synchronize your accounts (LeetCode, GitHub) to activate your Pokédex companion.
+    <h2 class="onboarding-title">Hey Trainer! ⚡</h2>
+
+    <p class="onboarding-copy">
+      Your Pokémon productivity companion is ready. Set up your profile to unlock XP tracking, gym badges, and Professor Oak's AI insights.
     </p>
 
-    <button id="btn-open-onboarding" style="width: 100%; height: 44px; background: linear-gradient(135deg, var(--accent), #d97706); color: #0b1220; border: none; border-radius: 8px; font-size: 13px; font-weight: 800; cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase; transition: all 0.2s; box-shadow: 0 4px 12px rgba(250,204,21,0.25);">
+    <div class="onboarding-features">
+      <div class="ob-feature">
+        <span class="ob-feature-icon">📊</span>
+        <span>Track your coding & focus time</span>
+      </div>
+      <div class="ob-feature">
+        <span class="ob-feature-icon">🏆</span>
+        <span>Earn gym badges from LeetCode</span>
+      </div>
+      <div class="ob-feature">
+        <span class="ob-feature-icon">🔬</span>
+        <span>Get AI insights from Professor Oak</span>
+      </div>
+    </div>
+
+    <button id="btn-open-onboarding" class="onboarding-action">
       Configure Profile ⚡
     </button>
   </div>

@@ -2,298 +2,158 @@
   if (document.getElementById('pikadex-root')) return;
   if (location.protocol === 'chrome-extension:') return;
 
-  // ── SVG SPRITES ──────────────────────────────────────────────
-  const PIKA_PICHU = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="54" height="54">
-    <polygon points="30,42 22,14 40,32" fill="#FFE57A" stroke="#c8a000" stroke-width="1.5"/>
-    <polygon points="70,42 78,14 60,32" fill="#FFE57A" stroke="#c8a000" stroke-width="1.5"/>
-    <ellipse cx="50" cy="56" rx="24" ry="22" fill="#FFE57A"/>
-    <circle cx="39" cy="50" r="5" fill="#fff"/><circle cx="61" cy="50" r="5" fill="#fff"/>
-    <circle cx="40.5" cy="51" r="3" fill="#1a1a1a"/><circle cx="62.5" cy="51" r="3" fill="#1a1a1a"/>
-    <circle cx="41.5" cy="49.5" r="1" fill="#fff"/><circle cx="63.5" cy="49.5" r="1" fill="#fff"/>
-    <ellipse cx="35" cy="61" rx="6" ry="4" fill="#FFB3B3" opacity="0.8"/>
-    <ellipse cx="65" cy="61" rx="6" ry="4" fill="#FFB3B3" opacity="0.8"/>
-    <path d="M44 63 Q50 67 56 63" stroke="#c8a000" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-    <ellipse cx="50" cy="74" rx="13" ry="6" fill="#c8a000"/>
-    <ellipse cx="28" cy="65" rx="6" ry="8" fill="#FFE57A" stroke="#c8a000" stroke-width="1"/>
-    <ellipse cx="72" cy="65" rx="6" ry="8" fill="#FFE57A" stroke="#c8a000" stroke-width="1"/>
-    <text x="62" y="26" font-size="11" fill="#bbb" font-family="sans-serif" font-weight="bold" opacity="0.7">z</text>
-    <text x="70" y="17" font-size="14" fill="#999" font-family="sans-serif" font-weight="bold" opacity="0.7">z</text>
-  </svg>`;
+  // ── PIXEL GRIDS & PALETTES ───────────────────────────────────
+  const PIXEL_GRIDS = {
+    pichu: [
+      "sds........sds..",
+      "sdds......sdds..",
+      ".sddys...sddys..",
+      "..sddyysdyydd...",
+      "...syyyyyyyys...",
+      "..syyweyyweyyys.",
+      "..syyeyyyyeyyys.",
+      "..syycyyyycyyys.",
+      "...syyyyyyyys...",
+      "....syyyyyys....",
+      "....syyyyyys....",
+      "...syybyybyyys..",
+      "..syybyyyybyyys.",
+      "..syyyyyyyyyys..",
+      "...syybyybyys...",
+      "....ss.ss.ss...."
+    ],
+    pikachu: [
+      "....s......s....",
+      "...sds....sds...",
+      "..sddds..sddds..",
+      "..syyysssyyys...",
+      ".syyyyyyyyyyys..",
+      ".syyweyyyyweyyys",
+      ".syyeyyyyyeyyyys",
+      ".sycyyyyyycyyys.",
+      ".syyyyyyyyyyyys.",
+      "..syyyyyyyyyys..",
+      "...syyyyyyyyys..",
+      "..syyybyyybyyys.",
+      ".syybyyyyybyyyys",
+      ".syyyyyyyyyyyys.",
+      "..syybyyybyyys..",
+      "...ss.sss.ss...."
+    ],
+    raichu: [
+      ".....s.....s....",
+      "....sds...sds...",
+      "...sddds.sddds..",
+      "..syyyysssyyyys.",
+      ".syyyyyyyyyyyys.",
+      ".syweyyyyyweyyys",
+      ".syeyyyyyyyeyyys",
+      ".sycyyyyyycyyys.",
+      ".syyyyyyyyyyyys.",
+      "..syyyyyyyyyys..",
+      "...syyyyyyyyys..",
+      "..syyybyyybyyys.",
+      ".syybyyyyybyyyys",
+      ".syyyyyyyyyyysd.",
+      "..syybyyybyyysds",
+      "...ss.sss.ss.ss."
+    ]
+  };
 
-  const PIKA_PIKACHU = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="54" height="54">
-    <polygon points="28,38 18,10 38,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-    <polygon points="72,38 82,10 62,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-    <rect x="24" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(-15,28,18)"/>
-    <rect x="68" y="10" width="8" height="15" rx="4" fill="#222" transform="rotate(15,72,18)"/>
-    <ellipse cx="50" cy="53" rx="26" ry="24" fill="#FFD700"/>
-    <circle cx="38" cy="47" r="6" fill="#fff"/>
-    <circle cx="62" cy="47" r="6" fill="#fff"/>
-    <circle cx="39.5" cy="48" r="3.5" fill="#1a1a1a"/>
-    <circle cx="63.5" cy="48" r="3.5" fill="#1a1a1a"/>
-    <circle cx="40.5" cy="46.5" r="1.2" fill="#fff"/>
-    <circle cx="64.5" cy="46.5" r="1.2" fill="#fff"/>
-    <ellipse cx="36" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
-    <ellipse cx="64" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.75"/>
-    <path d="M44 61 Q50 66 56 61" stroke="#c8a000" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <ellipse cx="50" cy="74" rx="16" ry="7" fill="#c8a000"/>
-    <ellipse cx="27" cy="63" rx="7" ry="8.5" fill="#FFD700" stroke="#c8a000" stroke-width="1"/>
-    <ellipse cx="73" cy="63" rx="7" ry="8.5" fill="#FFD700" stroke="#c8a000" stroke-width="1"/>
-    <path d="M60 71 L82 56 L74 55 L84 42 L68 47" fill="#FFD700" stroke="#c8a000" stroke-width="1.5" stroke-linejoin="round"/>
-  </svg>`;
-
-  const PIKA_RAICHU = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="54" height="54">
-    <ellipse cx="28" cy="22" rx="7" ry="18" fill="#c8a000" transform="rotate(-20,28,22)"/>
-    <ellipse cx="72" cy="22" rx="7" ry="18" fill="#c8a000" transform="rotate(20,72,22)"/>
-    <ellipse cx="28" cy="22" rx="4" ry="13" fill="#FF8C00" transform="rotate(-20,28,22)"/>
-    <ellipse cx="72" cy="22" rx="4" ry="13" fill="#FF8C00" transform="rotate(20,72,22)"/>
-    <ellipse cx="50" cy="55" rx="28" ry="26" fill="#c8a000"/>
-    <ellipse cx="50" cy="62" rx="22" ry="16" fill="#f4a460"/>
-    <circle cx="38" cy="48" r="7" fill="#fff"/>
-    <circle cx="62" cy="48" r="7" fill="#fff"/>
-    <circle cx="39.5" cy="49" r="4.2" fill="#1a1a1a"/>
-    <circle cx="63.5" cy="49" r="4.2" fill="#1a1a1a"/>
-    <circle cx="41" cy="47.5" r="1.5" fill="#fff"/>
-    <circle cx="65" cy="47.5" r="1.5" fill="#fff"/>
-    <ellipse cx="34" cy="61" rx="8" ry="5" fill="#FF6B6B" opacity="0.8"/>
-    <ellipse cx="66" cy="61" rx="8" ry="5" fill="#FF6B6B" opacity="0.8"/>
-    <path d="M43 64 Q50 70 57 64" stroke="#8B6914" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-    <path d="M60 78 Q70 60 80 55 Q72 54 82 42 Q68 47 65 70Z" fill="#c8a000" stroke="#8B6914" stroke-width="1.2"/>
-    <circle cx="24" cy="68" r="5" fill="#c8a000" stroke="#8B6914" stroke-width="1"/>
-    <circle cx="76" cy="68" r="5" fill="#c8a000" stroke="#8B6914" stroke-width="1"/>
-  </svg>`;
-
-  const PIKA_SLEEP = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="54" height="54">
-    <polygon points="28,38 18,10 38,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-    <polygon points="72,38 82,10 62,28" fill="#FFD700" stroke="#c8a000" stroke-width="1.5"/>
-    <ellipse cx="50" cy="53" rx="26" ry="24" fill="#FFD700"/>
-    <path d="M33 48 Q38 45 43 48" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <path d="M57 48 Q62 45 67 48" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <ellipse cx="36" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.5"/>
-    <ellipse cx="64" cy="59" rx="7" ry="4.5" fill="#FF6B6B" opacity="0.5"/>
-    <path d="M44 63 Q50 66 56 63" stroke="#c8a000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    <ellipse cx="50" cy="74" rx="16" ry="7" fill="#c8a000"/>
-    <text x="68" y="32" font-size="11" fill="#9090c0" font-family="sans-serif" font-weight="bold">z</text>
-    <text x="76" y="21" font-size="15" fill="#7070a0" font-family="sans-serif" font-weight="bold">z</text>
-    <text x="85" y="11" font-size="19" fill="#5050a0" font-family="sans-serif" font-weight="bold">z</text>
-  </svg>`;
-
-  const PIXEL_PIKACHU = `<svg class="pixel-partner" viewBox="0 0 16 16" width="54" height="54" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" aria-label="Pixel Pikachu">
-    <rect width="16" height="16" fill="none"/>
-    <rect x="3" y="0" width="2" height="4" fill="#33251a"/>
-    <rect x="11" y="0" width="2" height="4" fill="#33251a"/>
-    <rect x="4" y="2" width="1" height="3" fill="#ffd84a"/>
-    <rect x="11" y="2" width="1" height="3" fill="#ffd84a"/>
-    <rect x="4" y="4" width="8" height="1" fill="#c89018"/>
-    <rect x="3" y="5" width="10" height="6" fill="#ffd84a"/>
-    <rect x="4" y="11" width="8" height="2" fill="#f4c431"/>
-    <rect x="2" y="7" width="2" height="3" fill="#ffd84a"/>
-    <rect x="12" y="7" width="2" height="3" fill="#ffd84a"/>
-    <rect x="5" y="7" width="2" height="2" fill="#1f1f1f"/>
-    <rect x="10" y="7" width="2" height="2" fill="#1f1f1f"/>
-    <rect x="6" y="7" width="1" height="1" fill="#ffffff"/>
-    <rect x="11" y="7" width="1" height="1" fill="#ffffff"/>
-    <rect x="3" y="9" width="2" height="1" fill="#ff6868"/>
-    <rect x="12" y="9" width="2" height="1" fill="#ff6868"/>
-    <rect x="7" y="9" width="2" height="1" fill="#7a4b18"/>
-    <rect x="6" y="10" width="1" height="1" fill="#7a4b18"/>
-    <rect x="9" y="10" width="1" height="1" fill="#7a4b18"/>
-    <rect x="13" y="5" width="2" height="1" fill="#c89018"/>
-    <rect x="14" y="4" width="1" height="1" fill="#ffd84a"/>
-    <rect x="14" y="3" width="2" height="1" fill="#c89018"/>
-    <rect x="5" y="13" width="2" height="2" fill="#c89018"/>
-    <rect x="9" y="13" width="2" height="2" fill="#c89018"/>
-    <rect x="4" y="15" width="3" height="1" fill="#7a4b18"/>
-    <rect x="9" y="15" width="3" height="1" fill="#7a4b18"/>
-  </svg>`;
-
-  const PIXEL_PIKACHU_SLEEP = `<svg class="pixel-partner is-sleeping" viewBox="0 0 16 16" width="54" height="54" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" aria-label="Sleepy pixel Pikachu">
-    <rect width="16" height="16" fill="none"/>
-    <rect x="3" y="0" width="2" height="4" fill="#6f6f9e"/>
-    <rect x="11" y="0" width="2" height="4" fill="#6f6f9e"/>
-    <rect x="4" y="2" width="1" height="3" fill="#f0dc78"/>
-    <rect x="11" y="2" width="1" height="3" fill="#f0dc78"/>
-    <rect x="3" y="5" width="10" height="6" fill="#f0dc78"/>
-    <rect x="4" y="11" width="8" height="2" fill="#d8bf54"/>
-    <rect x="5" y="8" width="2" height="1" fill="#4b3b2a"/>
-    <rect x="10" y="8" width="2" height="1" fill="#4b3b2a"/>
-    <rect x="3" y="9" width="2" height="1" fill="#f59aa0"/>
-    <rect x="12" y="9" width="2" height="1" fill="#f59aa0"/>
-    <rect x="7" y="10" width="2" height="1" fill="#7a4b18"/>
-    <rect x="13" y="3" width="1" height="1" fill="#7c86c8"/>
-    <rect x="14" y="2" width="1" height="1" fill="#7c86c8"/>
-    <rect x="15" y="1" width="1" height="1" fill="#7c86c8"/>
-    <rect x="5" y="13" width="2" height="2" fill="#ad9042"/>
-    <rect x="9" y="13" width="2" height="2" fill="#ad9042"/>
-  </svg>`;
-
-  const PARTNER_DEX = {
+  const PIXEL_PALETTES = {
+    pichu: {
+      y: '#ffe675', b: '#fff4b8', c: '#ff8a93', d: '#382a1a', s: '#382a1a', e: '#382a1a', w: '#ffffff'
+    },
     pikachu: {
-      name: 'Pikachu',
-      sprites: {
-        pichu: `<svg class="sitting-partner" viewBox="0 0 120 120" width="82" height="82" xmlns="http://www.w3.org/2000/svg" aria-label="Sitting Pikachu">
-          <path d="M30 32 L18 6 L43 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 32 L102 6 L77 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M23 10 L18 6 L27 26 Z" fill="#2c211b"/>
-          <path d="M97 10 L102 6 L93 26 Z" fill="#2c211b"/>
-          <ellipse cx="60" cy="55" rx="38" ry="34" fill="#ffd94a" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="60" cy="82" rx="34" ry="25" fill="#f8c83e" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="39" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <ellipse cx="81" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <circle cx="42" cy="55" r="2.5" fill="#fff7d6"/>
-          <circle cx="84" cy="55" r="2.5" fill="#fff7d6"/>
-          <ellipse cx="31" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <ellipse cx="89" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <path d="M56 67 L60 71 L64 67" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M52 75 Q60 81 68 75" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <path d="M30 87 Q16 91 18 104 Q36 105 43 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 87 Q104 91 102 104 Q84 105 77 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M42 101 Q31 112 47 114 Q58 113 56 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M78 101 Q89 112 73 114 Q62 113 64 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M88 82 L111 69 L100 67 L113 53 L94 60" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <ellipse cx="60" cy="115" rx="37" ry="5" fill="rgba(30,23,19,.22)"/>
-        </svg>`,
-        pikachu: `<svg class="sitting-partner" viewBox="0 0 120 120" width="82" height="82" xmlns="http://www.w3.org/2000/svg" aria-label="Sitting Pikachu">
-          <path d="M30 32 L18 6 L43 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 32 L102 6 L77 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M23 10 L18 6 L27 26 Z" fill="#2c211b"/>
-          <path d="M97 10 L102 6 L93 26 Z" fill="#2c211b"/>
-          <ellipse cx="60" cy="55" rx="38" ry="34" fill="#ffd94a" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="60" cy="82" rx="34" ry="25" fill="#f8c83e" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="39" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <ellipse cx="81" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <circle cx="42" cy="55" r="2.5" fill="#fff7d6"/>
-          <circle cx="84" cy="55" r="2.5" fill="#fff7d6"/>
-          <ellipse cx="31" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <ellipse cx="89" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <path d="M56 67 L60 71 L64 67" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M52 75 Q60 81 68 75" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <path d="M30 87 Q16 91 18 104 Q36 105 43 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 87 Q104 91 102 104 Q84 105 77 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M42 101 Q31 112 47 114 Q58 113 56 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M78 101 Q89 112 73 114 Q62 113 64 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M88 82 L111 69 L100 67 L113 53 L94 60" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <ellipse cx="60" cy="115" rx="37" ry="5" fill="rgba(30,23,19,.22)"/>
-        </svg>`,
-        raichu: `<svg class="sitting-partner is-charged" viewBox="0 0 120 120" width="82" height="82" xmlns="http://www.w3.org/2000/svg" aria-label="Charged sitting Pikachu">
-          <path d="M30 32 L18 6 L43 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 32 L102 6 L77 25 Z" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M23 10 L18 6 L27 26 Z" fill="#2c211b"/>
-          <path d="M97 10 L102 6 L93 26 Z" fill="#2c211b"/>
-          <ellipse cx="60" cy="55" rx="38" ry="34" fill="#ffd94a" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="60" cy="82" rx="34" ry="25" fill="#f8c83e" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="39" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <ellipse cx="81" cy="58" rx="8" ry="7" fill="#1e1713"/>
-          <circle cx="42" cy="55" r="2.5" fill="#fff7d6"/>
-          <circle cx="84" cy="55" r="2.5" fill="#fff7d6"/>
-          <ellipse cx="31" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <ellipse cx="89" cy="70" rx="9" ry="6" fill="#ff6f75"/>
-          <path d="M56 67 L60 71 L64 67" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M52 75 Q60 81 68 75" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <path d="M30 87 Q16 91 18 104 Q36 105 43 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 87 Q104 91 102 104 Q84 105 77 93" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M42 101 Q31 112 47 114 Q58 113 56 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M78 101 Q89 112 73 114 Q62 113 64 102" fill="#d59a28" stroke="#7a5520" stroke-width="3"/>
-          <path d="M88 82 L111 69 L100 67 L113 53 L94 60" fill="#ffd94a" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M15 55 L23 48 L20 58 L29 54" fill="none" stroke="#f5b700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M101 37 L110 29 L106 41 L116 36" fill="none" stroke="#f5b700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <ellipse cx="60" cy="115" rx="37" ry="5" fill="rgba(30,23,19,.22)"/>
-        </svg>`,
-        sleep: `<svg class="sitting-partner is-sleeping" viewBox="0 0 120 120" width="82" height="82" xmlns="http://www.w3.org/2000/svg" aria-label="Sleepy sitting Pikachu">
-          <path d="M30 32 L18 6 L43 25 Z" fill="#f4d56b" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 32 L102 6 L77 25 Z" fill="#f4d56b" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M23 10 L18 6 L27 26 Z" fill="#2c211b"/>
-          <path d="M97 10 L102 6 L93 26 Z" fill="#2c211b"/>
-          <ellipse cx="60" cy="55" rx="38" ry="34" fill="#f4d56b" stroke="#7a5520" stroke-width="3"/>
-          <ellipse cx="60" cy="82" rx="34" ry="25" fill="#e9bd45" stroke="#7a5520" stroke-width="3"/>
-          <path d="M32 58 Q39 52 46 58" stroke="#1e1713" stroke-width="4" fill="none" stroke-linecap="round"/>
-          <path d="M74 58 Q81 52 88 58" stroke="#1e1713" stroke-width="4" fill="none" stroke-linecap="round"/>
-          <ellipse cx="31" cy="70" rx="9" ry="6" fill="#f59aa0"/>
-          <ellipse cx="89" cy="70" rx="9" ry="6" fill="#f59aa0"/>
-          <path d="M54 72 Q60 76 66 72" stroke="#7a5520" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <path d="M30 87 Q16 91 18 104 Q36 105 43 93" fill="#f4d56b" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M90 87 Q104 91 102 104 Q84 105 77 93" fill="#f4d56b" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M42 101 Q31 112 47 114 Q58 113 56 102" fill="#c8912b" stroke="#7a5520" stroke-width="3"/>
-          <path d="M78 101 Q89 112 73 114 Q62 113 64 102" fill="#c8912b" stroke="#7a5520" stroke-width="3"/>
-          <path d="M88 82 L111 69 L100 67 L113 53 L94 60" fill="#f4d56b" stroke="#7a5520" stroke-width="3" stroke-linejoin="round"/>
-          <text x="86" y="27" font-size="17" font-family="Arial, sans-serif" font-weight="700" fill="#6b7cc8">z</text>
-          <text x="99" y="15" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#5263aa">z</text>
-          <ellipse cx="60" cy="115" rx="37" ry="5" fill="rgba(30,23,19,.22)"/>
-        </svg>`
-      }
+      y: '#ffcc00', b: '#ffe57f', c: '#ff3b50', d: '#1a1200', s: '#1a1200', e: '#1a1200', w: '#ffffff'
+    },
+    raichu: {
+      y: '#ff9900', b: '#ffe3a0', c: '#ffcc44', d: '#3d1400', s: '#3d1400', e: '#3d1400', w: '#ffffff'
     }
   };
 
-  // ── STYLES ────────────────────────────────────────────────────
-  function pikaBuddySprite({ id = 'idle', charged = false, sleep = false, tiny = false } = {}) {
-    const bodyTop = sleep ? '#f8d65c' : '#ffd83f';
-    const bodyBottom = sleep ? '#e7b947' : '#f2b928';
-    const cheek = sleep ? '#ee8f8f' : '#ff6d6d';
-    const eyeMarkup = sleep
-      ? `<path d="M41 61 Q48 55 55 61" stroke="#211914" stroke-width="4" fill="none" stroke-linecap="round"/>
-         <path d="M73 61 Q80 55 87 61" stroke="#211914" stroke-width="4" fill="none" stroke-linecap="round"/>
-         <text x="90" y="31" font-size="16" font-family="Arial, sans-serif" font-weight="800" fill="#5b6fb7">z</text>
-         <text x="103" y="18" font-size="22" font-family="Arial, sans-serif" font-weight="800" fill="#465aa6">z</text>`
-      : `<ellipse cx="47" cy="60" rx="7" ry="8" fill="#211914"/>
-         <ellipse cx="81" cy="60" rx="7" ry="8" fill="#211914"/>
-         <circle cx="50" cy="57" r="2.6" fill="#fff9d8"/>
-         <circle cx="84" cy="57" r="2.6" fill="#fff9d8"/>`;
+  const EYE_COLS = {
+    pichu: [5, 6, 9, 10],
+    pikachu: [4, 5, 10, 11],
+    raichu: [3, 4, 10, 11]
+  };
 
-    return `<svg class="pika-buddy-svg${charged ? ' is-charged' : ''}${sleep ? ' is-sleeping' : ''}${tiny ? ' is-tiny' : ''}" viewBox="0 0 128 132" xmlns="http://www.w3.org/2000/svg" aria-label="${sleep ? 'Sleepy' : 'Sitting'} Pikachu">
-      <defs>
-        <linearGradient id="pika-body-${id}" x1="34" y1="24" x2="90" y2="118" gradientUnits="userSpaceOnUse">
-          <stop stop-color="${bodyTop}"/>
-          <stop offset="1" stop-color="${bodyBottom}"/>
-        </linearGradient>
-        <linearGradient id="pika-ear-${id}" x1="26" y1="4" x2="48" y2="39" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#ffe263"/>
-          <stop offset="1" stop-color="#f0bd24"/>
-        </linearGradient>
-        <radialGradient id="pika-face-${id}" cx="48%" cy="38%" r="62%">
-          <stop stop-color="#fff0a8"/>
-          <stop offset=".42" stop-color="${bodyTop}"/>
-          <stop offset="1" stop-color="${bodyBottom}"/>
-        </radialGradient>
-      </defs>
-      <ellipse cx="63" cy="123" rx="35" ry="6" fill="rgba(21,16,10,.24)"/>
-      <path d="M86 88 L121 68 L106 66 L124 49 L98 57 L106 41 L85 67" fill="url(#pika-body-${id})" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M34 40 L21 5 L52 30 Z" fill="url(#pika-ear-${id})" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M25 11 L21 5 L31 32 Z" fill="#211914"/>
-      <path d="M90 40 L105 5 L74 30 Z" fill="url(#pika-ear-${id})" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M101 11 L105 5 L94 32 Z" fill="#211914"/>
-      <path d="M35 66 C33 40 48 25 64 25 C82 25 96 41 93 66 C105 82 99 114 65 116 C31 116 22 84 35 66 Z" fill="url(#pika-face-${id})" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M36 86 C23 88 19 102 30 107 C43 111 50 98 48 88" fill="#ffd83f" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M90 86 C105 88 109 102 98 107 C85 111 78 98 80 88" fill="#ffd83f" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      ${eyeMarkup}
-      <ellipse cx="34" cy="73" rx="9" ry="8" fill="${cheek}"/>
-      <ellipse cx="94" cy="73" rx="9" ry="8" fill="${cheek}"/>
-      <path d="M59 70 L64 74 L69 70" stroke="#7c5722" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M53 80 Q64 88 75 80" stroke="#7c5722" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-      <path d="M45 106 C33 116 45 124 61 116 C61 108 56 104 45 106 Z" fill="#c98d24" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M83 106 C95 116 83 124 67 116 C67 108 72 104 83 106 Z" fill="#c98d24" stroke="#7c5722" stroke-width="4" stroke-linejoin="round"/>
-      ${charged ? '<path d="M17 61 L28 51 L24 66 L37 60" fill="none" stroke="#f5b700" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M100 38 L113 27 L108 44 L122 36" fill="none" stroke="#f5b700" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' : ''}
-    </svg>`;
+  const STAGE_NAMES = {
+    pichu: 'Pichu',
+    pikachu: 'Pikachu',
+    raichu: 'Raichu'
+  };
+
+  function getEvoStage(todayFocusMs) {
+    const h = (todayFocusMs || 0) / 3600000;
+    if (h >= 10) return 'raichu';
+    if (h >= 3)  return 'pikachu';
+    return 'pichu';
   }
 
-  const PIKA_BUDDY_SPRITES = {
-    pichu: pikaBuddySprite({ id: 'pichu', tiny: true }),
-    pikachu: pikaBuddySprite({ id: 'pikachu' }),
-    raichu: pikaBuddySprite({ id: 'raichu', charged: true }),
-    sleep: pikaBuddySprite({ id: 'sleep', sleep: true })
-  };
+  function drawPixelMascot(canvas, form, eyeState = 'open') {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const scale = W / 16;
+    const palette = PIXEL_PALETTES[form] || PIXEL_PALETTES.pikachu;
+    const grid = PIXEL_GRIDS[form] || PIXEL_GRIDS.pikachu;
+    
+    ctx.clearRect(0, 0, W, H);
+    
+    for (let r = 0; r < 16; r++) {
+      const rowStr = grid[r];
+      for (let c = 0; c < 16; c++) {
+        const char = rowStr[c];
+        if (char === '.') continue;
+        
+        let color = palette[char];
+        if (!color) continue;
+        
+        if (eyeState === 'blink') {
+          if (char === 'e' || char === 'w') {
+            color = palette.y;
+          }
+          const cols = EYE_COLS[form] || EYE_COLS.pikachu;
+          if (r === 6 && cols.includes(c)) {
+            color = palette.s;
+          }
+        } else if (eyeState === 'happy') {
+          if (char === 'e' || char === 'w') {
+            color = palette.y;
+          }
+          if (form === 'pichu') {
+            if ((r === 5 && (c === 5 || c === 10)) || (r === 6 && (c === 4 || c === 6 || c === 9 || c === 11))) {
+              color = palette.s;
+            }
+          } else if (form === 'pikachu') {
+            if ((r === 5 && (c === 4 || c === 11)) || (r === 6 && (c === 3 || c === 5 || c === 10 || c === 12))) {
+              color = palette.s;
+            }
+          } else if (form === 'raichu') {
+            if ((r === 5 && (c === 3 || c === 11)) || (r === 6 && (c === 2 || c === 4 || c === 10 || c === 12))) {
+              color = palette.s;
+            }
+          }
+        }
+        
+        ctx.fillStyle = color;
+        ctx.fillRect(c * scale, r * scale, scale, scale);
+      }
+    }
+  }
 
   const css = `
 #pikadex-root{position:fixed;bottom:18px;right:18px;z-index:2147483647;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;user-select:none;pointer-events:none}
 #pikadex-root *{box-sizing:border-box}
 #pika-widget{display:grid;grid-template-columns:86px minmax(92px,154px);align-items:end;gap:8px;cursor:pointer;position:relative;pointer-events:auto;transform-origin:bottom right;filter:drop-shadow(0 12px 18px rgba(0,0,0,.26))}
 #pika-stage{position:relative;width:86px;height:106px;display:flex;align-items:flex-end;justify-content:center}
-#pika-wrap{width:86px;height:106px;background:transparent;border:0;display:flex;align-items:flex-end;justify-content:center;animation:pFloat 3.6s ease-in-out infinite;box-shadow:none;position:relative;overflow:visible}
+#pika-wrap{width:86px;height:106px;background:transparent;border:0;display:flex;align-items:flex-end;justify-content:center;animation:pFloat 3.6s ease-in-out infinite;box-shadow:none;position:relative;overflow:visible;will-change:transform}
 #pika-wrap::after{content:'';position:absolute;left:18px;right:13px;bottom:3px;height:10px;border-radius:999px;background:radial-gradient(ellipse at center,rgba(31,25,16,.34),rgba(31,25,16,0) 70%);filter:blur(.5px);z-index:0}
 #pika-inner{width:104px;height:114px;display:flex;align-items:flex-end;justify-content:center;position:relative;z-index:1}
-.pika-buddy-svg{display:block;width:102px;height:112px;transform:translateY(5px);filter:drop-shadow(0 7px 8px rgba(0,0,0,.22))}
-.pika-buddy-svg.is-tiny{width:94px;height:104px}
-.pika-buddy-svg.is-charged{filter:drop-shadow(0 0 9px rgba(245,183,0,.48)) drop-shadow(0 7px 8px rgba(0,0,0,.22))}
-.pika-buddy-svg.is-sleeping{filter:drop-shadow(0 7px 8px rgba(0,0,0,.18)) saturate(.94)}
-.sitting-partner,.pixel-partner{display:block}
+#pika-canvas{display:block;width:80px;height:80px;image-rendering:pixelated;image-rendering:crisp-edges;transform:translateY(5px);filter:drop-shadow(0 6px 8px rgba(26,23,20,.18))}
+#pika-canvas.is-charged{filter:drop-shadow(0 0 8px rgba(244,180,0,.45)) drop-shadow(0 6px 8px rgba(26,23,20,.18))}
+#pika-canvas.is-sleeping{filter:drop-shadow(0 6px 8px rgba(26,23,20,.12)) saturate(.9)}
 #pika-status{width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,.96);position:absolute;bottom:15px;right:8px;z-index:3;box-shadow:0 4px 10px rgba(0,0,0,.26)}
 #pika-card{margin-bottom:14px;padding:8px 10px 9px;background:rgba(255,255,255,.9);border:1px solid rgba(31,41,51,.12);border-radius:14px;box-shadow:0 10px 24px rgba(15,23,42,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .18s ease,opacity .18s ease,box-shadow .18s ease;opacity:.93}
 #pika-widget:hover #pika-card{transform:translateY(-2px);opacity:1;box-shadow:0 14px 30px rgba(15,23,42,.22)}
@@ -323,7 +183,7 @@
   #pika-stage{width:76px;height:96px}
   #pika-wrap{width:76px;height:96px}
   #pika-inner{width:94px;height:104px}
-  .pika-buddy-svg{width:92px;height:102px}
+  #pika-canvas{width:64px;height:64px}
   #pika-card{max-width:118px;margin-top:-4px;margin-bottom:0;padding:6px 8px}
   #pika-label{font-size:7px}
   #pika-activity{font-size:10px;max-width:100px}
@@ -343,7 +203,7 @@
         <div id="pika-bubble"></div>
         <div id="evo-ring"></div>
         <div id="pika-wrap">
-          <div id="pika-inner"></div>
+          <div id="pika-inner"><canvas id="pika-canvas" width="256" height="256"></canvas></div>
           <div id="pika-status"></div>
         </div>
       </div>
@@ -369,8 +229,49 @@
   let lastActivity = Date.now();
   let bubbleTimer = null;
 
-  const activePartner = PARTNER_DEX.pikachu;
-  const SPRITES = PIKA_BUDDY_SPRITES;
+  let _blinkState = 'open';
+  let _blinkTimer = null;
+  let _blinkCount = 0;
+
+  function drawCompanion() {
+    const canvas = document.getElementById('pika-canvas');
+    if (!canvas) return;
+    
+    let activeForm = currentStage;
+    let eyeState = _blinkState;
+    
+    if (state === 'sleep') {
+      eyeState = 'blink';
+      canvas.className = 'is-sleeping';
+    } else if (state === 'celebrate') {
+      eyeState = 'happy';
+      canvas.className = (activeForm === 'raichu') ? 'is-charged' : '';
+    } else {
+      canvas.className = (activeForm === 'raichu') ? 'is-charged' : '';
+    }
+    
+    drawPixelMascot(canvas, activeForm, eyeState);
+  }
+
+  function startBlinkingLoop() {
+    if (_blinkTimer) clearTimeout(_blinkTimer);
+    const nextBlink = () => {
+      _blinkTimer = setTimeout(() => {
+        if (state !== 'sleep' && state !== 'celebrate') {
+          _blinkState = 'blink';
+          drawCompanion();
+          setTimeout(() => {
+            _blinkState = 'open';
+            drawCompanion();
+            nextBlink();
+          }, 150);
+        } else {
+          nextBlink();
+        }
+      }, 3000 + Math.random() * 3000);
+    };
+    nextBlink();
+  }
 
   let extensionInvalidated = false;
   let heartbeatInterval = null;
@@ -413,7 +314,7 @@
   }
 
   function setSprite(stage) {
-    inner.innerHTML = SPRITES[stage] || SPRITES.pikachu;
+    drawCompanion();
   }
 
   function setStage(stage, animate=false) {
@@ -431,10 +332,11 @@
     wrap.style.animation = 'evoFlash 0.4s ease-in-out 5, evoPulse 0.4s ease-in-out 5';
     evoRing.style.display = 'block';
     evoRing.style.animation = 'evoRing 0.6s ease-out 4';
+    const dispName = STAGE_NAMES[newStage] || 'Pikachu';
     showBubble(newStage === 'pikachu' ? 'Pikachu powered up after 3h focus!' : 'Pikachu hit 10h focus mode!', 5000);
     setTimeout(() => {
       setSprite(newStage);
-      wrap.style.animation = 'pFloat 3s ease-in-out infinite';
+      wrap.style.animation = 'pFloat 3.6s ease-in-out infinite';
       evoRing.style.display = 'none';
       evoRing.style.animation = '';
     }, 2000);
@@ -443,12 +345,13 @@
   function setState(newState, msg, dur=3500) {
     state = newState;
     clearTimeout(idleBack);
+    const currentName = STAGE_NAMES[currentStage] || 'Pikachu';
     const cfgs = {
-      idle:      {anim:'pFloat 3s ease-in-out infinite',     dot:'#4CAF50', lbl:activePartner.name},
-      wave:      {anim:'pWave 0.55s ease-in-out 3',         dot:'#4CAF50', lbl:activePartner.name},
-      celebrate: {anim:'pCelebrate 0.45s ease-in-out 4',   dot:'#FFD700', lbl:activePartner.name},
-      warn:      {anim:'pWarn 0.25s ease-in-out 5',         dot:'#FF5722', lbl:'Focus buddy'},
-      sleep:     {anim:'pSleep 3.5s ease-in-out infinite',  dot:'#9090c0', lbl:'Pikachu resting'},
+      idle:      {anim:'pFloat 3.6s ease-in-out infinite',  dot:'#4CAF50', lbl:currentName, animDur:0},
+      wave:      {anim:'pWave 0.55s ease-in-out 3',         dot:'#4CAF50', lbl:currentName, animDur:1650},
+      celebrate: {anim:'pCelebrate 0.45s ease-in-out 4',   dot:'#FFD700', lbl:currentName, animDur:1800},
+      warn:      {anim:'pWarn 0.25s ease-in-out 5',         dot:'#FF5722', lbl:'Focus buddy', animDur:1250},
+      sleep:     {anim:'pSleep 3.5s ease-in-out infinite',  dot:'#9090c0', lbl:currentName + ' resting', animDur:0},
     };
     const cfg = cfgs[newState]||cfgs.idle;
     wrap.style.animation = cfg.anim;
@@ -466,7 +369,7 @@
     }
     if (msg) showBubble(msg, dur);
     if (newState!=='idle'&&newState!=='sleep') {
-      idleBack = setTimeout(()=>setState('idle'), dur);
+      idleBack = setTimeout(()=>setState('idle'), cfg.animDur);
     }
   }
 
@@ -488,10 +391,13 @@
 
   // Initial entrance
   wrap.style.animation = 'pRun 0.7s ease-out';
-  setSprite('pikachu');
+  startBlinkingLoop();
   safeSendMessage({type: 'GET_DATA'}, res => {
-    const name = res?.trainer?.trainerName || 'Trainer';
-    setState('wave', `Hey Trainer ${name}! Let's catch some XP! ⚡`);
+    const t = res?.trainer || {};
+    const name = t.trainerName || 'Trainer';
+    const initEvo = getEvoStage(t.todayFocusMs || 0);
+    setStage(initEvo, false);
+    setState('idle', `Hey Trainer ${name}! Let's catch some XP! ⚡`);
   });
 
   // Interactions
@@ -502,8 +408,8 @@
     'You\'re building something great!','Don\'t stop now — keep leveling up!'
   ];
   document.getElementById('pika-widget').addEventListener('click', ()=>{
-    if (state==='sleep') setState('wave','Back to work, Trainer! ⚡');
-    else setState('wave', MSGS[Math.floor(Math.random()*MSGS.length)]);
+    if (state==='sleep') setState('idle','Back to work, Trainer! ⚡');
+    else setState('idle', MSGS[Math.floor(Math.random()*MSGS.length)]);
   });
 
   // Hide on double right-click
@@ -692,7 +598,7 @@
         if (msg.type==='PIKA_CELEBRATE') { setState('celebrate', msg.text||'Amazing! ⚡', 4000); if(msg.xp) showXP(msg.xp); }
         if (msg.type==='PIKA_WARN')      setState('warn', msg.text||'Focus!', 3000);
         if (msg.type==='PIKA_XP')        showXP(msg.xp||0);
-        if (msg.type==='PIKA_WAVE')      setState('wave', msg.text||'Hey!', 3000);
+        if (msg.type==='PIKA_WAVE')      setState('idle', msg.text||'Hey!', 3000);
         if (msg.type==='PIKA_EVOLVE')    { setStage(msg.stage, true); setState('celebrate', msg.text, 5000); }
       });
     } catch (error) {

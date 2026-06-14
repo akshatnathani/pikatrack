@@ -123,6 +123,159 @@ function empty(icon, title, sub) {
   return `<div class="empty"><div class="ei">${icon}</div><div class="et">${title}</div><div class="es">${sub}</div></div>`;
 }
 
+const PIXEL_GRIDS = {
+  pichu: [
+    "sds........sds..",
+    "sdds......sdds..",
+    ".sddys...sddys..",
+    "..sddyysdyydd...",
+    "...syyyyyyyys...",
+    "..syyweyyweyyys.",
+    "..syyeyyyyeyyys.",
+    "..syycyyyycyyys.",
+    "...syyyyyyyys...",
+    "....syyyyyys....",
+    "....syyyyyys....",
+    "...syybyybyyys..",
+    "..syybyyyybyyys.",
+    "..syyyyyyyyyys..",
+    "...syybyybyys...",
+    "....ss.ss.ss...."
+  ],
+  pikachu: [
+    "....s......s....",
+    "...sds....sds...",
+    "..sddds..sddds..",
+    "..syyysssyyys...",
+    ".syyyyyyyyyyys..",
+    ".syyweyyyyweyyys",
+    ".syyeyyyyyeyyyys",
+    ".sycyyyyyycyyys.",
+    ".syyyyyyyyyyyys.",
+    "..syyyyyyyyyys..",
+    "...syyyyyyyyys..",
+    "..syyybyyybyyys.",
+    ".syybyyyyybyyyys",
+    ".syyyyyyyyyyyys.",
+    "..syybyyybyyys..",
+    "...ss.sss.ss...."
+  ],
+  raichu: [
+    ".....s.....s....",
+    "....sds...sds...",
+    "...sddds.sddds..",
+    "..syyyysssyyyys.",
+    ".syyyyyyyyyyyys.",
+    ".syweyyyyyweyyys",
+    ".syeyyyyyyyeyyys",
+    ".sycyyyyyycyyys.",
+    ".syyyyyyyyyyyys.",
+    "..syyyyyyyyyys..",
+    "...syyyyyyyyys..",
+    "..syyybyyybyyys.",
+    ".syybyyyyybyyyys",
+    ".syyyyyyyyyyysd.",
+    "..syybyyybyyysds",
+    "...ss.sss.ss.ss."
+  ]
+};
+
+const PIXEL_PALETTES = {
+  pichu: {
+    y: '#ffe675', b: '#fff4b8', c: '#ff8a93', d: '#382a1a', s: '#382a1a', e: '#382a1a', w: '#ffffff'
+  },
+  pikachu: {
+    y: '#ffcc00', b: '#ffe57f', c: '#ff3b50', d: '#1a1200', s: '#1a1200', e: '#1a1200', w: '#ffffff'
+  },
+  raichu: {
+    y: '#ff9900', b: '#ffe3a0', c: '#ffcc44', d: '#3d1400', s: '#3d1400', e: '#3d1400', w: '#ffffff'
+  }
+};
+
+const EYE_COLS = {
+  pichu: [5, 6, 9, 10],
+  pikachu: [4, 5, 10, 11],
+  raichu: [3, 4, 10, 11]
+};
+
+function drawPixelMascot(canvas, form, blinkOpen = true) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const scale = W / 16;
+  const palette = PIXEL_PALETTES[form] || PIXEL_PALETTES.pikachu;
+  const grid = PIXEL_GRIDS[form] || PIXEL_GRIDS.pikachu;
+  
+  ctx.clearRect(0, 0, W, H);
+  
+  for (let r = 0; r < 16; r++) {
+    const rowStr = grid[r];
+    for (let c = 0; c < 16; c++) {
+      const char = rowStr[c];
+      if (char === '.') continue;
+      
+      let color = palette[char];
+      if (!color) continue;
+      
+      if (!blinkOpen) {
+        if (char === 'e' || char === 'w') {
+          color = palette.y;
+        }
+        const cols = EYE_COLS[form] || EYE_COLS.pikachu;
+        if (r === 6 && cols.includes(c)) {
+          color = palette.s;
+        }
+      }
+      
+      ctx.fillStyle = color;
+      ctx.fillRect(c * scale, r * scale, scale, scale);
+    }
+  }
+}
+
+let _mascotBlinkOpen = true;
+let _mascotAnimHandle = null;
+
+function startMascotAnimation(form) {
+  if (_mascotAnimHandle) clearInterval(_mascotAnimHandle);
+  
+  const drawAll = () => {
+    const canvas = document.getElementById('mascot-canvas');
+    const obCanvas = document.getElementById('ob-mascot-canvas');
+    if (canvas) drawPixelMascot(canvas, form, _mascotBlinkOpen);
+    if (obCanvas) drawPixelMascot(obCanvas, form, _mascotBlinkOpen);
+  };
+  
+  let frameCount = 0;
+  _mascotAnimHandle = setInterval(() => {
+    frameCount++;
+    if (frameCount % 100 === 0) {
+      _mascotBlinkOpen = false;
+      drawAll();
+      setTimeout(() => {
+        _mascotBlinkOpen = true;
+        drawAll();
+      }, 150);
+    }
+  }, 30);
+  
+  drawAll();
+}
+
+function renderPartner(form) {
+  startMascotAnimation(form);
+  
+  const evoNames = { pichu: 'Pichu Stage', pikachu: 'Pikachu Stage', raichu: 'Raichu Stage ⚡' };
+  const metaEvo = document.getElementById('trainer-meta-evo');
+  if (metaEvo) metaEvo.textContent = evoNames[form] || 'Pichu Stage';
+  
+  const stage = document.getElementById('mascot-stage');
+  if (stage) {
+    stage.classList.remove('form-pichu', 'form-pikachu', 'form-raichu');
+    stage.classList.add('form-' + form);
+  }
+}
+
 // ── TABS ─────────────────────────────────────────────────────
 function showTab(id) {
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
@@ -143,18 +296,18 @@ function renderHeader(data) {
 
   // Update trainer name elements dynamically
   const name = t.trainerName || 'Trainer';
-  const subtitleEl = document.querySelector('.header-subtitle');
-  if (subtitleEl) subtitleEl.textContent = 'Trainer ' + name;
-  const metaTitleEl = document.querySelector('.trainer-meta-title');
-  if (metaTitleEl) metaTitleEl.textContent = 'Trainer ' + name;
-  const versionEl = document.querySelector('.version');
-  if (versionEl) versionEl.textContent = 'Trainer ' + name + ' · v2.1';
+  const headerTrainerEl = document.getElementById('header-trainer-name');
+  if (headerTrainerEl) headerTrainerEl.textContent = name;
+  const metaTrainerEl = document.getElementById('trainer-meta-name');
+  if (metaTrainerEl) metaTrainerEl.textContent = name;
 
   // Update trainer header & card elements
   document.getElementById('xp-num').textContent = xp+' / 500';
   document.getElementById('xp-bar').style.width = pct+'%';
   document.getElementById('ss-score').textContent = calcScore(t,todaySess,data);
   document.getElementById('ss-streak').textContent = t.streak||0;
+  const streakValEl = document.getElementById('streak-val');
+  if (streakValEl) streakValEl.textContent = t.streak||0;
   document.getElementById('ss-time').textContent = fmtMs(todayMs);
   document.getElementById('ss-leet').textContent = t.leetcodeSolved||0;
 
@@ -173,6 +326,7 @@ function renderHeader(data) {
   const evo = getEvo(t.todayFocusMs||0);
   const evoNames = {pichu:'Pichu',pikachu:'Pikachu',raichu:'Raichu'};
   document.getElementById('t-level').textContent = 'Level '+(t.level||1)+' · '+evoNames[evo];
+  renderPartner(evo);
 
   // Update evo strip
   ['pichu','pikachu','raichu'].forEach(id => {
@@ -779,6 +933,30 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 
+  function initOnboarding(form) {
+    const obCanvas = document.getElementById('ob-mascot-canvas');
+    if (obCanvas) {
+      drawPixelMascot(obCanvas, form, true);
+      startMascotAnimation(form);
+    }
+    const container = document.getElementById('ob-particles');
+    if (container) {
+      container.innerHTML = '';
+      const emojis = ['⚡', '⭐', '✨', '🔥', '💫'];
+      for (let i = 0; i < 15; i++) {
+        const el = document.createElement('div');
+        el.className = 'ob-particle';
+        el.textContent = emojis[i % emojis.length];
+        el.style.left = `${Math.random() * 90}%`;
+        el.style.top = `${15 + Math.random() * 75}%`;
+        el.style.fontSize = `${12 + Math.random() * 12}px`;
+        el.style.setProperty('--dur', `${3 + Math.random() * 3}s`);
+        el.style.setProperty('--delay', `${Math.random() * 4}s`);
+        container.appendChild(el);
+      }
+    }
+  }
+
   chrome.runtime.sendMessage({type:'GET_DATA'}, data=>{
     if (!data) { console.warn('PikaDex: no data from background'); return; }
     
@@ -789,6 +967,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if (!t.onboarded) {
       if (shell) shell.style.display = 'none';
       if (onboardingOverlay) onboardingOverlay.style.display = 'flex';
+      initOnboarding(t.partnerPokemon || 'pikachu');
       return;
     } else {
       if (shell) shell.style.display = '';
