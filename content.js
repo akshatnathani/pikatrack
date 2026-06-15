@@ -57,6 +57,78 @@
       ".syyyyyyyyyyysd.",
       "..syybyyybyyysds",
       "...ss.sss.ss.ss."
+    ],
+    bulbasaur: [
+      "................",
+      ".....ssss.......",
+      "....sllls.......",
+      "...sllllls......",
+      "...sllldls......",
+      "..sgggggggs.....",
+      ".sggwegweggs....",
+      ".sggegggeggs....",
+      ".sgggcggcggs....",
+      "..sgggggggs.....",
+      "...sggbggs......",
+      "..sggbbbggs.....",
+      ".sgggggggggs....",
+      ".sggsggggsgs....",
+      "..ss....ss......",
+      "................"
+    ],
+    charmander: [
+      "............s...",
+      "...........sfs..",
+      "..........sfys..",
+      "....ssss..sys...",
+      "...soooossys....",
+      "..soowooos......",
+      "..sooeeooos.....",
+      "..soocoooos.....",
+      "...sooooos......",
+      "...soobbos......",
+      "..soobbbos......",
+      ".soooooooos.....",
+      ".sooosoooos.....",
+      "..ss...ss.......",
+      "................",
+      "................"
+    ],
+    squirtle: [
+      "................",
+      "....ssss........",
+      "...suuuus.......",
+      "..suuwuuus......",
+      "..suueuuus......",
+      "..suucuuus......",
+      "...suuuuss......",
+      "..skkkkkkus.....",
+      ".skkbbbbbks.....",
+      ".skkbbbbbkks....",
+      ".sukkkkkkuus....",
+      "..suuuuuuus.....",
+      "..suuussuus.....",
+      "...ss...ss......",
+      "................",
+      "................"
+    ],
+    eevee: [
+      "s..............s",
+      "ss............ss",
+      "sns..........sns",
+      ".snss......ssns.",
+      "..snnssssssnns..",
+      ".snnnnnnnnnnnns.",
+      ".snnwennnnwenns.",
+      ".snneennnneenns.",
+      ".snnnncbbcannns.",
+      "..snnnbbbbnnns..",
+      "...sbbbbbbbss...",
+      "..snnnnnnnnnns..",
+      ".snnnsnnnnsnnns.",
+      "..ss......ss....",
+      "................",
+      "................"
     ]
   };
 
@@ -69,19 +141,39 @@
     },
     raichu: {
       y: '#ff9900', b: '#ffe3a0', c: '#ffcc44', d: '#3d1400', s: '#3d1400', e: '#3d1400', w: '#ffffff'
+    },
+    bulbasaur: {
+      g: '#62c9a2', b: '#a8edd8', l: '#4da65b', c: '#ec6f7f', d: '#2f6d3d', s: '#173c2d', e: '#173c2d', w: '#ffffff'
+    },
+    charmander: {
+      o: '#f28a2e', b: '#ffd68a', c: '#f6a35b', f: '#ff4338', y: '#ffd447', s: '#4b220f', e: '#4b220f', w: '#ffffff'
+    },
+    squirtle: {
+      u: '#65b8e8', b: '#ffe1a6', k: '#8a6b45', c: '#ff9aa8', s: '#17324a', e: '#17324a', w: '#ffffff'
+    },
+    eevee: {
+      n: '#9a633a', b: '#f4dfb3', c: '#d98b7c', a: '#6f4428', s: '#3a2416', e: '#3a2416', w: '#ffffff'
     }
   };
 
   const EYE_COLS = {
     pichu: [5, 6, 9, 10],
     pikachu: [4, 5, 10, 11],
-    raichu: [3, 4, 10, 11]
+    raichu: [3, 4, 10, 11],
+    bulbasaur: [4, 5, 8, 9],
+    charmander: [4, 5, 6],
+    squirtle: [4, 5],
+    eevee: [4, 5, 10, 11]
   };
 
   const STAGE_NAMES = {
     pichu: 'Pichu',
     pikachu: 'Pikachu',
-    raichu: 'Raichu'
+    raichu: 'Raichu',
+    bulbasaur: 'Bulbasaur',
+    charmander: 'Charmander',
+    squirtle: 'Squirtle',
+    eevee: 'Eevee'
   };
 
   function getEvoStage(todayFocusMs) {
@@ -89,6 +181,11 @@
     if (h >= 10) return 'raichu';
     if (h >= 3)  return 'pikachu';
     return 'pichu';
+  }
+
+  function getCompanionForm(t = {}) {
+    const partner = t.partnerPokemon || 'pikachu';
+    return partner === 'pikachu' ? getEvoStage(t.todayFocusMs || 0) : partner;
   }
 
   function drawPixelMascot(canvas, form, eyeState = 'open') {
@@ -225,6 +322,7 @@
 
   let state = 'idle';
   let currentStage = 'pikachu'; // pichu | pikachu | raichu
+  let currentPartner = 'pikachu';
   let idleBack = null;
   let lastActivity = Date.now();
   let bubbleTimer = null;
@@ -276,6 +374,7 @@
   let extensionInvalidated = false;
   let heartbeatInterval = null;
   let sleepCheckInterval = null;
+  const HEARTBEAT_INTERVAL_MS = 2000;
 
   function isExtensionValid() {
     if (extensionInvalidated) return false;
@@ -395,8 +494,9 @@
   safeSendMessage({type: 'GET_DATA'}, res => {
     const t = res?.trainer || {};
     const name = t.trainerName || 'Trainer';
-    const initEvo = getEvoStage(t.todayFocusMs || 0);
-    setStage(initEvo, false);
+    currentPartner = t.partnerPokemon || 'pikachu';
+    const initCompanion = getCompanionForm(t);
+    setStage(initCompanion, false);
     setState('idle', `Hey Trainer ${name}! Let's catch some XP! ⚡`);
   });
 
@@ -561,8 +661,7 @@
     activityEl.textContent = domain ? 'On ' + domain : 'Keeping watch';
   }
 
-  // Every 5 seconds, check conditions and send heartbeat
-  heartbeatInterval = setInterval(() => {
+  function sendHeartbeat() {
     if (!isExtensionValid()) return;
     const isVisible = document.visibilityState === 'visible';
     const ytInfo = getYouTubeInfo();
@@ -588,7 +687,15 @@
       githubRepo,
       leetcodeProblem
     });
-  }, 5000);
+  }
+
+  // Keep active time close to real-time without waiting for the first interval tick.
+  sendHeartbeat();
+  heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+  window.addEventListener('focus', sendHeartbeat, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') sendHeartbeat();
+  }, { passive: true });
 
   // Message listener
   if (isExtensionValid()) {
@@ -599,7 +706,7 @@
         if (msg.type==='PIKA_WARN')      setState('warn', msg.text||'Focus!', 3000);
         if (msg.type==='PIKA_XP')        showXP(msg.xp||0);
         if (msg.type==='PIKA_WAVE')      setState('idle', msg.text||'Hey!', 3000);
-        if (msg.type==='PIKA_EVOLVE')    { setStage(msg.stage, true); setState('celebrate', msg.text, 5000); }
+        if (msg.type==='PIKA_EVOLVE' && currentPartner === 'pikachu') { setStage(msg.stage, true); setState('celebrate', msg.text, 5000); }
       });
     } catch (error) {
       extensionInvalidated = true;

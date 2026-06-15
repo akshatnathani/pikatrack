@@ -2,6 +2,7 @@ const DB_NAME = 'pikadex_v3';
 const DB_VERSION = 3;
 const POPUP_RECORD_LIMIT = 350;
 const SYNC_CACHE_TTL_MS = 5 * 60 * 1000;
+const GITHUB_LIVE_CACHE_TTL_MS = 60 * 1000;
 const GITHUB_API_HEADERS = {
   'Accept': 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28'
@@ -40,6 +41,22 @@ function sendTabMessage(tabId, payload) {
   } catch (error) {
     console.warn('PikaDex: tab message skipped:', describeSyncError(error));
   }
+}
+
+function tabsGet(tabId) {
+  return new Promise(resolve => {
+    try {
+      chrome.tabs.get(tabId, tab => {
+        if (chrome.runtime.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(tab || null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
 }
 
 function openDB() {
@@ -106,6 +123,37 @@ function dbGetAll(store) {
   }));
 }
 
+function dbGetAllByIndexValue(store, indexName, value) {
+  return openDB().then(d => new Promise((res, rej) => {
+    const req = d.transaction(store,'readonly')
+      .objectStore(store)
+      .index(indexName)
+      .getAll(IDBKeyRange.only(value));
+    req.onsuccess = () => res(req.result || []);
+    req.onerror = () => rej(req.error);
+  }));
+}
+
+function dbGetRecentByIndex(store, indexName, limit = POPUP_RECORD_LIMIT) {
+  return openDB().then(d => new Promise((res, rej) => {
+    const out = [];
+    const req = d.transaction(store,'readonly')
+      .objectStore(store)
+      .index(indexName)
+      .openCursor(null, 'prev');
+    req.onsuccess = e => {
+      const cursor = e.target.result;
+      if (!cursor || out.length >= limit) {
+        res(out);
+        return;
+      }
+      out.push(cursor.value);
+      cursor.continue();
+    };
+    req.onerror = () => rej(req.error);
+  }));
+}
+
 function getRecordTime(item = {}) {
   return Number(item.timestamp || item.endTime || item.startedAt || item.startTime || item.lastVisit || 0);
 }
@@ -135,6 +183,62 @@ async function getFullDataPayload() {
     dbGetAll('site_stats')
   ]);
   return { trainer, sessions, videos, battles, site_stats };
+}
+
+function recordIdentity(item = {}) {
+  return item.id !== undefined
+    ? String(item.id)
+    : [item.domain, item.url, item.video_id, item.timestamp, item.startTime, item.endTime].map(value => value || '').join('|');
+}
+
+function mergePopupRecords(todayRecords = [], recentRecords = [], limit = POPUP_RECORD_LIMIT) {
+  const seen = new Set();
+  const merged = [];
+  [...todayRecords, ...recentRecords].forEach(item => {
+    const key = recordIdentity(item);
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+
+  const today = new Date().toDateString();
+  const todayItems = merged.filter(item => item.date === today);
+  const olderItems = merged
+    .filter(item => item.date !== today)
+    .sort((a, b) => getRecordTime(b) - getRecordTime(a))
+    .slice(0, Math.max(0, limit - todayItems.length));
+  return [...todayItems, ...olderItems].sort((a, b) => getRecordTime(a) - getRecordTime(b));
+}
+
+async function getPopupDataPayload() {
+  const today = new Date().toDateString();
+  const [
+    trainer,
+    todaySessions,
+    recentSessions,
+    todayVideos,
+    recentVideos,
+    todayBattles,
+    recentBattles,
+    site_stats
+  ] = await Promise.all([
+    getOrCreateTrainer(),
+    dbGetAllByIndexValue('sessions', 'date', today),
+    dbGetRecentByIndex('sessions', 'timestamp', POPUP_RECORD_LIMIT),
+    dbGetAllByIndexValue('videos', 'date', today),
+    dbGetRecentByIndex('videos', 'timestamp', POPUP_RECORD_LIMIT),
+    dbGetAllByIndexValue('battles', 'date', today),
+    dbGetRecentByIndex('battles', 'timestamp', POPUP_RECORD_LIMIT),
+    dbGetRecentByIndex('site_stats', 'lastVisit', POPUP_RECORD_LIMIT)
+  ]);
+
+  return {
+    trainer,
+    sessions: mergePopupRecords(todaySessions, recentSessions).map(sanitizeSessionRecord),
+    videos: mergePopupRecords(todayVideos, recentVideos),
+    battles: mergePopupRecords(todayBattles, recentBattles),
+    site_stats
+  };
 }
 
 function resetDailyTrainerFields(t, today) {
@@ -177,6 +281,7 @@ async function getOrCreateTrainer() {
       onboarded: false,
       partnerPokemon: 'pikachu',
       trackingPaused: false,
+      flowGuardEnabled: true,
       
       // New profile fields
       leetcodeUsername: '',
@@ -213,6 +318,7 @@ async function getOrCreateTrainer() {
     onboarded: true,
     partnerPokemon: 'pikachu',
     trackingPaused: false,
+    flowGuardEnabled: true,
     leetcodeUsername: '',
     githubUsername: '',
     codeforcesHandle: '',
@@ -303,10 +409,13 @@ function getEvoStage(todayFocusMs) {
 
 // --- Active Time Engine Variables and Helpers ---
 let lastFocusedWindowId = null;
-const HEARTBEAT_SECONDS = 5;
-const HEARTBEAT_SUSPEND_MS = 15000;
+const HEARTBEAT_SECONDS = 2;
+const HEARTBEAT_SUSPEND_MS = 10000;
 const MAX_COUNTED_HEARTBEAT_SECONDS = HEARTBEAT_SUSPEND_MS / 1000;
+const SESSION_WALL_CLOCK_GRACE_MS = HEARTBEAT_SECONDS * 1000;
+const FLOW_GUARD_COOLDOWN_MS = 3 * 60 * 1000;
 let trackingQueue = Promise.resolve();
+let lastFlowGuardWarningAt = 0;
 
 function runTrackingTask(task) {
   const next = trackingQueue.catch(() => {}).then(task);
@@ -331,6 +440,97 @@ function getInitialHeartbeatSeconds(msg, now) {
   return Math.min(HEARTBEAT_SECONDS, activeForSeconds);
 }
 
+function localDayStartMs(timeMs) {
+  const d = new Date(timeMs);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function nextLocalDayStartMs(timeMs) {
+  const d = new Date(timeMs);
+  d.setHours(24, 0, 0, 0);
+  return d.getTime();
+}
+
+function splitCountedDurationByDay(startTime, endTime, countedMs) {
+  const start = Number(startTime) || endTime;
+  const end = Math.max(Number(endTime) || start, start);
+  const total = Math.max(0, Math.round(Number(countedMs) || 0));
+  if (!total) return [];
+
+  const elapsed = Math.max(1, end - start);
+  const slices = [];
+  let cursor = start;
+  let allocated = 0;
+
+  while (cursor < end) {
+    const sliceEnd = Math.min(end, nextLocalDayStartMs(cursor));
+    const isLast = sliceEnd >= end;
+    const durationMs = isLast
+      ? total - allocated
+      : Math.round(total * ((sliceEnd - cursor) / elapsed));
+    if (durationMs > 0) {
+      slices.push({
+        startTime: cursor,
+        endTime: sliceEnd,
+        durationMs,
+        date: new Date(cursor).toDateString()
+      });
+      allocated += durationMs;
+    }
+    cursor = sliceEnd;
+  }
+
+  if (!slices.length) {
+    return [{ startTime: start, endTime: end, durationMs: total, date: new Date(end).toDateString() }];
+  }
+  return slices;
+}
+
+function getSessionWallClockMs(startTime, endTime) {
+  const start = Number(startTime) || 0;
+  const end = Number(endTime) || start;
+  return Math.max(0, end - start);
+}
+
+function clampSessionDurationMs(durationMs, startTime, endTime) {
+  const duration = Math.max(0, Math.round(Number(durationMs) || 0));
+  const wallClockMs = getSessionWallClockMs(startTime, endTime);
+  if (!wallClockMs) return Math.min(duration, SESSION_WALL_CLOCK_GRACE_MS);
+  return Math.min(duration, wallClockMs + SESSION_WALL_CLOCK_GRACE_MS);
+}
+
+function getSessionDurationMs(sess = {}) {
+  return clampSessionDurationMs(
+    Math.round((Number(sess.accumulatedSeconds) || 0) * 1000),
+    sess.startTime,
+    sess.lastHeartbeatTime || sess.endTime || sess.timestamp
+  );
+}
+
+function sanitizeSessionRecord(session = {}) {
+  const durationMs = clampSessionDurationMs(
+    session.durationMs,
+    session.startTime,
+    session.endTime || session.timestamp || session.startTime
+  );
+  if (durationMs === session.durationMs) return session;
+  const info = getSiteInfo(session.domain || '');
+  const xp = session.inProgress
+    ? Math.round((durationMs / 60000) * info.xpPerMin)
+    : Math.min(Number(session.xp) || 0, Math.round((durationMs / 60000) * info.xpPerMin));
+  return { ...session, durationMs, xp };
+}
+
+function getTodayLiveSessionMs(sess) {
+  if (!sess) return 0;
+  const durationMs = getSessionDurationMs(sess);
+  const today = new Date().toDateString();
+  return splitCountedDurationByDay(sess.startTime, sess.lastHeartbeatTime, durationMs)
+    .filter(slice => slice.date === today)
+    .reduce((sum, slice) => sum + slice.durationMs, 0);
+}
+
 function createSessionFromHeartbeat(msg, sender, now, seconds = HEARTBEAT_SECONDS) {
   return {
     domain: msg.domain,
@@ -341,6 +541,69 @@ function createSessionFromHeartbeat(msg, sender, now, seconds = HEARTBEAT_SECOND
     lastHeartbeatTime: now,
     accumulatedSeconds: seconds
   };
+}
+
+function getPathFromUrl(url = '') {
+  try {
+    return new URL(url).pathname.toLowerCase();
+  } catch {
+    return String(url || '').toLowerCase();
+  }
+}
+
+function classifyHeartbeatIntent(msg = {}) {
+  const domain = String(msg.domain || '').replace(/^www\./, '');
+  const path = getPathFromUrl(msg.url || '');
+  const info = getSiteInfo(domain);
+
+  if (domain === 'github.com') {
+    if (path.startsWith('/notifications') || path.startsWith('/trending') || path.startsWith('/explore')) {
+      return { kind: 'interruption', label: 'GitHub browsing' };
+    }
+    return { kind: 'flow', label: 'GitHub work' };
+  }
+
+  if (domain.includes('leetcode.com')) {
+    if (path.includes('/discuss')) return { kind: 'neutral', label: 'LeetCode discuss' };
+    return { kind: 'flow', label: 'LeetCode problem work' };
+  }
+
+  if (domain.includes('youtube.com')) {
+    if (msg.youtube?.isShorts) return { kind: 'interruption', label: 'YouTube Shorts' };
+    if (msg.youtube?.isPlaying && isEdu(msg.youtube?.title || '')) return { kind: 'flow', label: 'YouTube learning' };
+    return { kind: 'interruption', label: 'YouTube' };
+  }
+
+  if (domain.includes('stackoverflow.com') || domain.includes('developer.mozilla.org') || domain.includes('docs.') || domain.includes('readthedocs')) {
+    return { kind: 'flow', label: 'Research' };
+  }
+
+  if (domain.includes('chatgpt.com') || domain.includes('claude.ai')) {
+    return { kind: 'flow', label: 'AI-assisted work' };
+  }
+
+  if (info.type === 'Social' || info.type === 'Entertainment') return { kind: 'interruption', label: domain || info.type };
+  if (['Development', 'Training Ground', 'Research', 'Productivity', 'AI Assistant'].includes(info.type)) {
+    return { kind: 'flow', label: domain || info.type };
+  }
+  return { kind: 'neutral', label: domain || 'this page' };
+}
+
+function maybeWarnFlowSwitch(previousSession, msg, sender, profile, now) {
+  if (!previousSession || profile.flowGuardEnabled === false) return;
+  if (!sender.tab?.id) return;
+  if (now - lastFlowGuardWarningAt < FLOW_GUARD_COOLDOWN_MS) return;
+
+  const previousIntent = classifyHeartbeatIntent(previousSession);
+  const nextIntent = classifyHeartbeatIntent(msg);
+  if (previousIntent.kind !== 'flow' || nextIntent.kind !== 'interruption') return;
+
+  const focusedMinutes = Math.max(1, Math.floor(getSessionDurationMs(previousSession) / 60000));
+  lastFlowGuardWarningAt = now;
+  sendTabMessage(sender.tab.id, {
+    type: 'PIKA_WARN',
+    text: `Flow Guard: you left ${previousIntent.label} after ${focusedMinutes}m for ${nextIntent.label}.`
+  });
 }
 
 // Initialize lastFocusedWindowId
@@ -382,6 +645,8 @@ function cleanString(value, maxLength = 80) {
   return String(value || '').trim().slice(0, maxLength);
 }
 
+const PARTNER_FORMS = new Set(['pikachu', 'bulbasaur', 'charmander', 'squirtle', 'eevee']);
+
 function sanitizeProfileFields(fields = {}) {
   const allowed = {
     trainerName: value => cleanString(value, 40) || 'Trainer',
@@ -390,8 +655,12 @@ function sanitizeProfileFields(fields = {}) {
     codeforcesHandle: value => cleanString(value, 64),
     codechefHandle: value => cleanString(value, 64),
     hackerrankUsername: value => cleanString(value, 64),
-    partnerPokemon: value => cleanString(value, 24) === 'pikachu' ? 'pikachu' : 'pikachu',
+    partnerPokemon: value => {
+      const partner = cleanString(value, 24).toLowerCase();
+      return PARTNER_FORMS.has(partner) ? partner : 'pikachu';
+    },
     trackingPaused: value => Boolean(value),
+    flowGuardEnabled: value => Boolean(value),
     onboarded: value => Boolean(value)
   };
   return Object.entries(fields).reduce((out, [key, value]) => {
@@ -458,36 +727,46 @@ async function closeCurrentSession() {
   const data = await storageGet(['currentSession']);
   if (data.currentSession) {
     const sess = data.currentSession;
-    const durationMs = Math.round((sess.accumulatedSeconds || 0) * 1000);
+    const durationMs = getSessionDurationMs(sess);
     
     // Only log if we accumulated at least 5 seconds
     if (durationMs >= 5000) {
       const info = getSiteInfo(sess.domain);
-      const mins = durationMs / 60000;
-      const xp = Math.round(mins * info.xpPerMin);
-      const date = new Date().toDateString();
+      const slices = splitCountedDurationByDay(sess.startTime, sess.lastHeartbeatTime, durationMs);
+      const today = new Date().toDateString();
+      let totalXp = 0;
+      let todayFocusMs = 0;
 
-      // Log session
-      await dbAdd('sessions', {
-        domain: sess.domain,
-        url: sess.url || '',
-        tabId: sess.tabId,
-        windowId: sess.windowId,
-        type: info.type,
-        startTime: sess.startTime,
-        endTime: sess.lastHeartbeatTime,
-        durationMs,
-        xp,
-        date,
-        timestamp: sess.lastHeartbeatTime
-      });
+      for (const slice of slices) {
+        if (slice.durationMs < 1000) continue;
+        const mins = slice.durationMs / 60000;
+        const xp = Math.round(mins * info.xpPerMin);
+        totalXp += xp;
+        if (slice.date === today) todayFocusMs += slice.durationMs;
+
+        await dbAdd('sessions', {
+          domain: sess.domain,
+          url: sess.url || '',
+          tabId: sess.tabId,
+          windowId: sess.windowId,
+          type: info.type,
+          startTime: slice.startTime,
+          endTime: slice.endTime,
+          durationMs: slice.durationMs,
+          xp,
+          date: slice.date,
+          timestamp: slice.endTime
+        });
+      }
 
       // Update trainer focus time & XP
       const t = await getOrCreateTrainer();
-      t.totalXP += xp;
-      t.todayXP += xp;
+      t.totalXP += totalXp;
+      t.todayXP += slices
+        .filter(slice => slice.date === today)
+        .reduce((sum, slice) => sum + Math.round((slice.durationMs / 60000) * info.xpPerMin), 0);
       t.totalFocusMs = (t.totalFocusMs || 0) + durationMs;
-      t.todayFocusMs = (t.todayFocusMs || 0) + durationMs;
+      t.todayFocusMs = (t.todayFocusMs || 0) + todayFocusMs;
       t.level = Math.floor(t.totalXP / 500) + 1;
 
       // Handle evolution
@@ -507,31 +786,31 @@ async function closeCurrentSession() {
       await dbPut('trainer', t);
 
       // Log battle if >= 2 minutes (120,000ms)
-      if (durationMs >= 120000) {
+      for (const slice of slices.filter(item => item.durationMs >= 120000)) {
         let won = true;
-        let battleXp = xp;
+        let battleXp = Math.round((slice.durationMs / 60000) * info.xpPerMin);
 
         if (info.type === 'Social') {
           won = false;
           battleXp = 0;
         } else if (info.type === 'Entertainment') {
           const vids = await dbGetAll('videos');
-          const sessionVids = vids.filter(v => v.timestamp >= sess.startTime && v.timestamp <= sess.lastHeartbeatTime);
+          const sessionVids = vids.filter(v => v.timestamp >= slice.startTime && v.timestamp <= slice.endTime);
           const hasEdu = sessionVids.some(v => v.educational);
           if (hasEdu) {
             won = true;
           } else {
             won = false;
-            battleXp = Math.round(xp * 0.2);
+            battleXp = Math.round(battleXp * 0.2);
           }
         }
         await dbAdd('battles', {
           domain: sess.domain,
-          durationMs,
+          durationMs: slice.durationMs,
           won,
           xp: battleXp,
-          date,
-          timestamp: Date.now()
+          date: slice.date,
+          timestamp: slice.endTime
         });
       }
     }
@@ -682,8 +961,15 @@ async function handleHeartbeat(msg, sender) {
         heartbeatSeconds = getHeartbeatSeconds(sess.lastHeartbeatTime, now);
         sess.lastHeartbeatTime = now;
         sess.accumulatedSeconds = (sess.accumulatedSeconds || 0) + heartbeatSeconds;
+        const cappedSeconds = Math.floor(getSessionDurationMs(sess) / 1000);
+        if (cappedSeconds < sess.accumulatedSeconds) {
+          sess.accumulatedSeconds = cappedSeconds;
+        }
         sess.url = msg.url;
       } else {
+        if (!isSuspended) {
+          maybeWarnFlowSwitch(sess, msg, sender, profile, now);
+        }
         await closeCurrentSession();
         heartbeatSeconds = getInitialHeartbeatSeconds(msg, now);
         sess = createSessionFromHeartbeat(msg, sender, now, heartbeatSeconds);
@@ -798,6 +1084,20 @@ async function handleHeartbeat(msg, sender) {
 // Proactive listeners to end sessions immediately on tab/window changes
 chrome.tabs.onActivated.addListener(async ({tabId}) => {
   await runTrackingTask(async () => {
+    const [storage, profile, tab] = await Promise.all([
+      storageGet(['currentSession']),
+      getOrCreateTrainer(),
+      tabsGet(tabId)
+    ]);
+    if (storage.currentSession && tab?.url) {
+      maybeWarnFlowSwitch(
+        storage.currentSession,
+        { domain: getDomain(tab.url) || '', url: tab.url },
+        { tab },
+        profile,
+        Date.now()
+      );
+    }
     await closeCurrentSession();
     await closeCurrentVideo();
   });
@@ -805,6 +1105,19 @@ chrome.tabs.onActivated.addListener(async ({tabId}) => {
 chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   if (info.status==='complete' && tab.active) {
     await runTrackingTask(async () => {
+      const [storage, profile] = await Promise.all([
+        storageGet(['currentSession']),
+        getOrCreateTrainer()
+      ]);
+      if (storage.currentSession && tab?.url) {
+        maybeWarnFlowSwitch(
+          storage.currentSession,
+          { domain: getDomain(tab.url) || '', url: tab.url },
+          { tab },
+          profile,
+          Date.now()
+        );
+      }
       await closeCurrentSession();
       await closeCurrentVideo();
     });
@@ -906,7 +1219,8 @@ async function fetchCachedAccountStats(provider, username, fetcher, options = {}
   const key = `syncCache:${provider}:${safeName}`;
   const cached = (await storageGet(key))[key];
   const now = Date.now();
-  if (!options.force && cached?.data && now - cached.at < SYNC_CACHE_TTL_MS) {
+  const ttl = Number(options.ttlMs || SYNC_CACHE_TTL_MS);
+  if (!options.force && cached?.data && now - cached.at < ttl) {
     return { ...cached.data, fromCache: true };
   }
 
@@ -1087,6 +1401,15 @@ async function fetchGitHubPublicEventStats(username, isLocalToday) {
     commitsToday: commitShas.size + fallbackCommitCount,
     contributionsToday
   };
+}
+
+async function fetchGitHubLiveStats(username) {
+  const todayDate = new Date().toDateString();
+  const isLocalToday = dateStr => {
+    const parsed = new Date(dateStr);
+    return !Number.isNaN(parsed.getTime()) && parsed.toDateString() === todayDate;
+  };
+  return fetchGitHubPublicEventStats(username, isLocalToday);
 }
 
 async function fetchGitHubContributionStats(username, todayKey = localDateKey()) {
@@ -1449,17 +1772,91 @@ async function syncAccounts(options = {}) {
   return { success: true, xpEarned, logEvents, syncErrors, cachedProviders, lastSyncTime: t.lastSyncTime };
 }
 
+async function refreshLiveGitHub(options = {}) {
+  const initialTrainer = await getOrCreateTrainer();
+  const githubUsername = initialTrainer.githubUsername;
+  if (!githubUsername) return { success: true, skipped: true };
+
+  const stats = await fetchCachedAccountStats(
+    'github-live',
+    githubUsername,
+    () => fetchGitHubLiveStats(githubUsername),
+    { force: Boolean(options.force), ttlMs: Number(options.ttlMs || GITHUB_LIVE_CACHE_TTL_MS) }
+  );
+  const t = await getOrCreateTrainer();
+  if (t.githubUsername !== githubUsername) return { success: true, skipped: true };
+  const todayKey = localDateKey();
+  const date = new Date().toDateString();
+  let xpEarned = 0;
+  let logEvents = [];
+
+  if (t.lastGitHubCommitAwardDate !== todayKey) {
+    t.lastGitHubCommitAwardDate = todayKey;
+    t.lastGitHubTodayCommitsAwarded = 0;
+  }
+
+  const liveCommits = Math.max(0, Number(stats.commitsToday || 0));
+  const liveContributions = Math.max(0, Number(stats.contributionsToday || 0), liveCommits);
+  t.githubTodayCommits = Math.max(Number(t.githubTodayCommits || 0), liveCommits);
+  t.githubTodayContributions = Math.max(Number(t.githubTodayContributions || 0), liveContributions);
+
+  if (t.githubTodayContributions > 0) {
+    t.githubLastContributionDate = todayKey;
+    t.githubContributionStreak = Math.max(1, Number(t.githubContributionStreak || 0));
+  }
+
+  const commitDelta = Math.max(0, t.githubTodayCommits - (t.lastGitHubTodayCommitsAwarded || 0));
+  if (commitDelta > 0) {
+    const xp = commitDelta * 30;
+    t.totalXP += xp;
+    t.todayXP += xp;
+    for (let i = 0; i < commitDelta; i++) {
+      await dbAdd('sessions', {domain: 'github.com', type: 'Development', startTime: Date.now(), endTime: Date.now(), durationMs: 0, xp: 30, date});
+      await dbAdd('battles', {domain: 'github.com', durationMs: 0, won: true, xp: 30, date, timestamp: Date.now()});
+    }
+    xpEarned += xp;
+    logEvents.push(`+${commitDelta} GitHub commit${commitDelta !== 1 ? 's' : ''} today (+${xp} XP)`);
+    chrome.tabs.query({ active: true }, tabs => {
+      tabs.forEach(tab => {
+        sendTabMessage(tab.id, {
+          type: 'PIKA_CELEBRATE',
+          text: `Caught ${commitDelta} new GitHub commit${commitDelta !== 1 ? 's' : ''}!`,
+          xp
+        });
+      });
+    });
+  }
+
+  t.lastGitHubTodayCommitsAwarded = Math.max(t.lastGitHubTodayCommitsAwarded || 0, t.githubTodayCommits);
+  t.level = Math.floor(t.totalXP / 500) + 1;
+  t.lastGitHubLiveSyncTime = Date.now();
+  await dbPut('trainer', t);
+
+  return { success: true, xpEarned, logEvents, fromCache: Boolean(stats.fromCache), lastGitHubLiveSyncTime: t.lastGitHubLiveSyncTime };
+}
+
+let liveGitHubRefreshPromise = null;
+
+function queueLiveGitHubRefresh(options = {}) {
+  if (liveGitHubRefreshPromise && !options.force) return liveGitHubRefreshPromise;
+  liveGitHubRefreshPromise = refreshLiveGitHub(options)
+    .catch(error => {
+      console.warn('PikaDex: GitHub live refresh skipped:', describeSyncError(error));
+      return { success: false, error: describeSyncError(error) };
+    })
+    .finally(() => {
+      liveGitHubRefreshPromise = null;
+    });
+  return liveGitHubRefreshPromise;
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type==='GET_DATA') {
+    if (msg.refreshLive) {
+      queueLiveGitHubRefresh({ force: Boolean(msg.forceLive), ttlMs: msg.liveTtlMs });
+    }
     trackingQueue.catch(() => {})
-      .then(() => getFullDataPayload())
-      .then(({trainer,sessions,videos,battles,site_stats}) => {
-        sessions = limitForPopup(sessions);
-        videos = limitForPopup(videos);
-        battles = limitForPopup(battles);
-        site_stats = limitSiteStatsForPopup(site_stats);
-        return {trainer,sessions,videos,battles,site_stats};
-      })
+      .then(() => getPopupDataPayload())
       .then(async ({trainer,sessions,videos,battles,site_stats}) => {
         // Fetch current active session and video from storage
         const storage = await storageGet(['currentSession', 'currentVideo']);
@@ -1468,26 +1865,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         let liveFocusMs = 0;
         if (storage.currentSession) {
           const sess = storage.currentSession;
-          const durationMs = Math.round((sess.accumulatedSeconds || 0) * 1000);
+          const durationMs = getTodayLiveSessionMs(sess);
           const info = getSiteInfo(sess.domain);
           const mins = durationMs / 60000;
           const xp = Math.round(mins * info.xpPerMin);
           liveXp += xp;
           liveFocusMs += durationMs;
           
-          sessions.push({
-            domain: sess.domain,
-            url: sess.url || '',
-            tabId: sess.tabId,
-            windowId: sess.windowId,
-            type: info.type,
-            startTime: sess.startTime,
-            endTime: sess.lastHeartbeatTime,
-            durationMs,
-            xp,
-            date: new Date().toDateString(),
-            inProgress: true
-          });
+          if (durationMs > 0) {
+            sessions.push({
+              domain: sess.domain,
+              url: sess.url || '',
+              tabId: sess.tabId,
+              windowId: sess.windowId,
+              type: info.type,
+              startTime: Math.max(sess.startTime, localDayStartMs(Date.now())),
+              endTime: sess.lastHeartbeatTime,
+              durationMs,
+              xp,
+              date: new Date().toDateString(),
+              inProgress: true
+            });
+          }
         }
 
         if (storage.currentVideo) {
@@ -1520,9 +1919,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
         // Clone trainer to avoid mutating cached database profile directly
         const clonedTrainer = JSON.parse(JSON.stringify(trainer));
+        const sessionFocusTodayMs = sessions
+          .filter(item => item.date === new Date().toDateString())
+          .reduce((sum, item) => sum + (Number(item.durationMs) || 0), 0);
         clonedTrainer.todayXP = (clonedTrainer.todayXP || 0) + liveXp;
         clonedTrainer.totalXP = (clonedTrainer.totalXP || 0) + liveXp;
-        clonedTrainer.todayFocusMs = (clonedTrainer.todayFocusMs || 0) + liveFocusMs;
+        clonedTrainer.todayFocusMs = sessionFocusTodayMs;
         clonedTrainer.totalFocusMs = (clonedTrainer.totalFocusMs || 0) + liveFocusMs;
         clonedTrainer.level = Math.floor(clonedTrainer.totalXP/500)+1;
 
@@ -1616,6 +2018,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 function nextMidnight() { const d=new Date(); d.setHours(24,0,0,0); return d.getTime(); }
 chrome.alarms.create('midnight', {when:nextMidnight(), periodInMinutes:1440});
 chrome.alarms.create('sync_profiles', {periodInMinutes:20});
+chrome.alarms.create('sync_github_live', {periodInMinutes:1});
 
 chrome.alarms.onAlarm.addListener(async alarm => {
   if (alarm.name==='midnight') {
@@ -1632,6 +2035,12 @@ chrome.alarms.onAlarm.addListener(async alarm => {
       await syncAccounts();
     } catch (error) {
       console.warn('PikaDex: scheduled profile sync skipped:', describeSyncError(error));
+    }
+  } else if (alarm.name === 'sync_github_live') {
+    try {
+      await queueLiveGitHubRefresh();
+    } catch (error) {
+      console.warn('PikaDex: scheduled GitHub live sync skipped:', describeSyncError(error));
     }
   }
 });

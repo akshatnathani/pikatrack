@@ -88,6 +88,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   outline-offset: 2px;
 }
 
+.hidden {
+  display: none !important;
+}
+
 /* ---- APP SHELL ------------------------------------------- */
 .shell {
   display: flex;
@@ -712,6 +716,175 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .panel-heading-spaced { margin-top: 14px; }
 .panel-heading-tight { margin-top: 12px; }
 .panel-spaced { margin-bottom: 12px; }
+
+/* ---- FLOW AUTOPSY --------------------------------------- */
+.flow-panel {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.flow-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.flow-kicker,
+.flow-label {
+  display: block;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.flow-value {
+  margin-top: 4px;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+.flow-sub {
+  margin-top: 4px;
+  max-width: 230px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.flow-score {
+  width: 66px;
+  min-height: 54px;
+  border-radius: 12px;
+  border: 1px solid rgba(34,160,107,0.2);
+  background: var(--green-bg);
+  color: var(--green-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.flow-score span {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.flow-score small {
+  margin-top: 3px;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.flow-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.flow-metric {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.flow-metric strong {
+  display: block;
+  margin-top: 3px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-sequence {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+  scrollbar-width: thin;
+}
+
+.flow-chip {
+  flex: 0 0 auto;
+  max-width: 128px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 7px;
+  background: #fff;
+}
+
+.flow-chip.flow-good { border-color: rgba(34,160,107,0.24); background: var(--green-bg); }
+.flow-chip.flow-warn { border-color: rgba(217,79,79,0.22); background: var(--red-bg); }
+.flow-chip.flow-neutral { background: var(--surface2); }
+
+.flow-chip-name {
+  display: block;
+  max-width: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.flow-chip-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 8.5px;
+  font-weight: 750;
+}
+
+.flow-actions {
+  margin-top: 9px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.secondary-btn.compact {
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 9px;
+  font-size: 10px;
+}
+
+.privacy-debug {
+  margin: 9px 0 0;
+  max-height: 180px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #111827;
+  color: #d1fae5;
+  padding: 10px;
+  font-size: 9.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
 
 /* ---- FOCUS DECK ----------------------------------------- */
 .focus-deck {

@@ -163,7 +163,45 @@
 
     <!-- CAUGHT TAB -->
     <div id="caught" class="sec active">
-      <div class="sec-title-bar">Caught Today</div>
+      <div class="sec-title-bar">Flow Autopsy</div>
+      <div class="flow-panel">
+        <div class="flow-hero">
+          <div>
+            <div class="flow-kicker">Deep work</div>
+            <div class="flow-value" id="flow-longest">0s</div>
+            <div class="flow-sub" id="flow-summary">No uninterrupted developer flow yet.</div>
+          </div>
+          <div class="flow-score">
+            <span id="flow-consistency">0/7</span>
+            <small>consistency</small>
+          </div>
+        </div>
+        <div class="flow-metric-grid">
+          <div class="flow-metric">
+            <span class="flow-label">Avg before switch</span>
+            <strong id="flow-average">0s</strong>
+          </div>
+          <div class="flow-metric">
+            <span class="flow-label">Switches</span>
+            <strong id="flow-switches">0</strong>
+          </div>
+          <div class="flow-metric">
+            <span class="flow-label">Recovery cost</span>
+            <strong id="flow-recovery">0s</strong>
+          </div>
+          <div class="flow-metric">
+            <span class="flow-label">Top interrupter</span>
+            <strong id="flow-interrupter">None</strong>
+          </div>
+        </div>
+        <div class="flow-sequence" id="flow-sequence"></div>
+        <div class="flow-actions">
+          <button class="secondary-btn compact" id="privacy-debug-btn">Inspect local data</button>
+        </div>
+        <pre class="privacy-debug hidden" id="privacy-debug-output"></pre>
+      </div>
+
+      <div class="sec-title-bar panel-heading-spaced">Caught Today</div>
       <div class="focus-deck">
         <div class="deck-main">
           <div class="deck-kicker">Today</div>
@@ -290,7 +328,7 @@
   <div class="nav">
     <button class="nav-btn active" data-tab="caught" id="nav-caught">
       <span class="ni">🎣</span>
-      <span>Caught</span>
+      <span>Flow</span>
     </button>
     <button class="nav-btn" data-tab="route" id="nav-route">
       <span class="ni">🗺️</span>
@@ -346,6 +384,14 @@
           <small>Keep companion visible, stop saving activity data.</small>
         </span>
         <input type="checkbox" id="tracking-paused"/>
+      </label>
+
+      <label class="setting-toggle" for="flow-guard-enabled">
+        <span>
+          Flow Guard
+          <small>Warn when a developer-flow block turns into an interruption.</small>
+        </span>
+        <input type="checkbox" id="flow-guard-enabled"/>
       </label>
 
       <div class="settings-divider">Coding Profiles</div>

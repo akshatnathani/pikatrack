@@ -15,12 +15,61 @@ const GYM_BADGES = [
 ];
 
 // ── HELPERS ──────────────────────────────────────────────────
-const fmtMs = ms => { const m=Math.round(ms/60000); return m<60 ? m+'m' : Math.floor(m/60)+'h '+(m%60)+'m'; };
+const fmtMs = ms => {
+  const totalSeconds = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+  if (totalSeconds < 60) return totalSeconds + 's';
+  const m = Math.floor(totalSeconds / 60);
+  return m < 60 ? m + 'm' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+};
 const fmtMinutes = minutes => Math.round(Number(minutes) || 0) + 'm';
 const todayStr = () => new Date().toDateString();
 const ts = sessions => (sessions||[]).filter(s=>s.date===todayStr());
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const num = value => Number(value) || 0;
+const RECOVERY_COST_MS = 23 * 60 * 1000;
+const FLOW_MIN_SESSION_MS = 5000;
+const FLOW_DAY_GOAL_MS = 25 * 60 * 1000;
+const POPUP_LIVE_REFRESH_MS = 2000;
+
+function hasExtensionRuntime() {
+  return typeof chrome !== 'undefined' && Boolean(chrome.runtime?.sendMessage);
+}
+
+function getPreviewData() {
+  return {
+    trainer: {
+      trainerName: 'Trainer',
+      onboarded: true,
+      partnerPokemon: 'pikachu',
+      level: 1,
+      todayXP: 0,
+      totalXP: 0,
+      todayFocusMs: 0,
+      totalFocusMs: 0,
+      leetcodeSolved: 0,
+      leetcodeTodaySolved: 0,
+      githubTodayCommits: 0,
+      githubTodayContributions: 0,
+      trackingPaused: false,
+      flowGuardEnabled: true
+    },
+    sessions: [],
+    videos: [],
+    battles: [],
+    site_stats: []
+  };
+}
+
+function sendRuntimeMessage(message, callback) {
+  if (hasExtensionRuntime()) {
+    chrome.runtime.sendMessage(message, callback);
+    return;
+  }
+  if (message.type === 'GET_DATA') callback?.(getPreviewData());
+  else if (message.type === 'UPDATE_PROFILE') callback?.({ ok: true });
+  else if (message.type === 'EXPORT_DATA') callback?.({ success: true, exportedAt: new Date().toISOString(), schemaVersion: 'preview', ...getPreviewData() });
+  else callback?.({ success: false, error: 'Extension APIs are unavailable in static preview.' });
+}
 
 function getDomainIcon(domain) {
   for (const k of Object.keys(DOMAIN_ICON)) if (domain.includes(k)) return DOMAIN_ICON[k];
@@ -36,36 +85,20 @@ function getGitHubTodayCount(t = {}) {
 }
 
 function calcScore(t, todaySess, data) {
-  // 1. Focus Time (40%) - Target 4 hours (240 mins)
-  const todayMs = todaySess.reduce((a,s)=>a+s.durationMs,0);
-  const todayMins = todayMs / 60000;
-  const focusScore = Math.min(100, (todayMins / 240) * 100);
-
-  // 2. LeetCode Progress (25%) - Target 2 problems solved today
+  const flow = getFlowMetrics(data);
+  const protectedFlowScore = Math.min(100, (flow.longestFlowMs / (90 * 60 * 1000)) * 100);
+  const consistencyScore = Math.min(100, (flow.consistency.completeDays / 5) * 100);
+  const recoveryScore = Math.max(0, 100 - (flow.recoveryTriggers * 18));
   const lcScore = Math.min(100, (t.leetcodeTodaySolved || 0) * 50);
-
-  // 3. GitHub Contributions (20%) - Target 3 commits today
   const ghContributions = getGitHubTodayCount(t);
-  const ghScore = Math.min(100, ghContributions * 33.3);
+  const ghScore = Math.min(100, ghContributions * 50);
 
-  // 4. Educational Video Ratio (10%)
-  const vids = (data?.videos || []).filter(v => v.date === todayStr());
-  let eduScore = 100; // Default if no videos watched
-  if (vids.length > 0) {
-    const eduCount = vids.filter(v => v.educational).length;
-    eduScore = (eduCount / vids.length) * 100;
-  }
-
-  // 5. Streak (5%) - Target 10 days
-  const streakScore = Math.min(100, getDisplayStreak(t) * 10);
-
-  // Combine
   const finalScore = Math.round(
-    (focusScore * 0.40) +
-    (lcScore * 0.25) +
-    (ghScore * 0.20) +
-    (eduScore * 0.10) +
-    (streakScore * 0.05)
+    (protectedFlowScore * 0.30) +
+    (consistencyScore * 0.20) +
+    (recoveryScore * 0.20) +
+    (lcScore * 0.15) +
+    (ghScore * 0.15)
   );
 
   return Math.min(100, Math.max(0, finalScore));
@@ -186,6 +219,78 @@ const PIXEL_GRIDS = {
     ".syyyyyyyyyyysd.",
     "..syybyyybyyysds",
     "...ss.sss.ss.ss."
+  ],
+  bulbasaur: [
+    "................",
+    ".....ssss.......",
+    "....sllls.......",
+    "...sllllls......",
+    "...sllldls......",
+    "..sgggggggs.....",
+    ".sggwegweggs....",
+    ".sggegggeggs....",
+    ".sgggcggcggs....",
+    "..sgggggggs.....",
+    "...sggbggs......",
+    "..sggbbbggs.....",
+    ".sgggggggggs....",
+    ".sggsggggsgs....",
+    "..ss....ss......",
+    "................"
+  ],
+  charmander: [
+    "............s...",
+    "...........sfs..",
+    "..........sfys..",
+    "....ssss..sys...",
+    "...soooossys....",
+    "..soowooos......",
+    "..sooeeooos.....",
+    "..soocoooos.....",
+    "...sooooos......",
+    "...soobbos......",
+    "..soobbbos......",
+    ".soooooooos.....",
+    ".sooosoooos.....",
+    "..ss...ss.......",
+    "................",
+    "................"
+  ],
+  squirtle: [
+    "................",
+    "....ssss........",
+    "...suuuus.......",
+    "..suuwuuus......",
+    "..suueuuus......",
+    "..suucuuus......",
+    "...suuuuss......",
+    "..skkkkkkus.....",
+    ".skkbbbbbks.....",
+    ".skkbbbbbkks....",
+    ".sukkkkkkuus....",
+    "..suuuuuuus.....",
+    "..suuussuus.....",
+    "...ss...ss......",
+    "................",
+    "................"
+  ],
+  eevee: [
+    "s..............s",
+    "ss............ss",
+    "sns..........sns",
+    ".snss......ssns.",
+    "..snnssssssnns..",
+    ".snnnnnnnnnnnns.",
+    ".snnwennnnwenns.",
+    ".snneennnneenns.",
+    ".snnnncbbcannns.",
+    "..snnnbbbbnnns..",
+    "...sbbbbbbbss...",
+    "..snnnnnnnnnns..",
+    ".snnnsnnnnsnnns.",
+    "..ss......ss....",
+    "................",
+    "................"
   ]
 };
 
@@ -198,14 +303,45 @@ const PIXEL_PALETTES = {
   },
   raichu: {
     y: '#ff9900', b: '#ffe3a0', c: '#ffcc44', d: '#3d1400', s: '#3d1400', e: '#3d1400', w: '#ffffff'
+  },
+  bulbasaur: {
+    g: '#62c9a2', b: '#a8edd8', l: '#4da65b', c: '#ec6f7f', d: '#2f6d3d', s: '#173c2d', e: '#173c2d', w: '#ffffff'
+  },
+  charmander: {
+    o: '#f28a2e', b: '#ffd68a', c: '#f6a35b', f: '#ff4338', y: '#ffd447', s: '#4b220f', e: '#4b220f', w: '#ffffff'
+  },
+  squirtle: {
+    u: '#65b8e8', b: '#ffe1a6', k: '#8a6b45', c: '#ff9aa8', s: '#17324a', e: '#17324a', w: '#ffffff'
+  },
+  eevee: {
+    n: '#9a633a', b: '#f4dfb3', c: '#d98b7c', a: '#6f4428', s: '#3a2416', e: '#3a2416', w: '#ffffff'
   }
 };
 
 const EYE_COLS = {
   pichu: [5, 6, 9, 10],
   pikachu: [4, 5, 10, 11],
-  raichu: [3, 4, 10, 11]
+  raichu: [3, 4, 10, 11],
+  bulbasaur: [4, 5, 8, 9],
+  charmander: [4, 5, 6],
+  squirtle: [4, 5],
+  eevee: [4, 5, 10, 11]
 };
+
+const COMPANION_NAMES = {
+  pichu: 'Pichu',
+  pikachu: 'Pikachu',
+  raichu: 'Raichu',
+  bulbasaur: 'Bulbasaur',
+  charmander: 'Charmander',
+  squirtle: 'Squirtle',
+  eevee: 'Eevee'
+};
+
+function getCompanionForm(t = {}) {
+  const partner = t.partnerPokemon || 'pikachu';
+  return partner === 'pikachu' ? getEvo(t.todayFocusMs || 0) : partner;
+}
 
 function drawPixelMascot(canvas, form, blinkOpen = true) {
   const ctx = canvas.getContext('2d');
@@ -276,11 +412,11 @@ function renderPartner(form) {
   
   const evoNames = { pichu: 'Pichu Stage', pikachu: 'Pikachu Stage', raichu: 'Raichu Stage ⚡' };
   const metaEvo = document.getElementById('trainer-meta-evo');
-  if (metaEvo) metaEvo.textContent = evoNames[form] || 'Pichu Stage';
+  if (metaEvo) metaEvo.textContent = COMPANION_NAMES[form] || 'Companion';
   
   const stage = document.getElementById('mascot-stage');
   if (stage) {
-    stage.classList.remove('form-pichu', 'form-pikachu', 'form-raichu');
+    stage.classList.remove('form-pichu', 'form-pikachu', 'form-raichu', 'form-bulbasaur', 'form-charmander', 'form-squirtle', 'form-eevee');
     stage.classList.add('form-' + form);
   }
 }
@@ -302,10 +438,9 @@ function renderHeader(data) {
   const todayMs = todaySess.reduce((a,s)=>a+s.durationMs,0);
   const xp = t.todayXP||0;
   const pct = Math.min(100, Math.round(xp/500*100));
-  const displayStreak = getDisplayStreak(t);
-  const hasLeetCodeStreak = num(t.leetcodeStreak) > 0 || Boolean(t.leetcodeUsername);
   const githubTodayCommits = num(t.githubTodayCommits);
   const githubTodayDisplay = getGitHubTodayCount(t);
+  const flowMetrics = getFlowMetrics(data);
 
   // Update trainer name elements dynamically
   const name = t.trainerName || 'Trainer';
@@ -318,13 +453,13 @@ function renderHeader(data) {
   document.getElementById('xp-num').textContent = xp+' / 500';
   document.getElementById('xp-bar').style.width = pct+'%';
   document.getElementById('ss-score').textContent = calcScore(t,todaySess,data);
-  document.getElementById('ss-streak').textContent = displayStreak;
+  document.getElementById('ss-streak').textContent = `${flowMetrics.consistency.completeDays}/7`;
   const streakValEl = document.getElementById('streak-val');
-  if (streakValEl) streakValEl.textContent = displayStreak;
+  if (streakValEl) streakValEl.textContent = `${flowMetrics.consistency.completeDays}/7`;
   const streakLabelEl = document.getElementById('streak-label');
-  if (streakLabelEl) streakLabelEl.textContent = hasLeetCodeStreak ? 'LeetCode streak' : 'day streak';
+  if (streakLabelEl) streakLabelEl.textContent = '7-day rhythm';
   const statStreakLabelEl = document.getElementById('ss-streak-label');
-  if (statStreakLabelEl) statStreakLabelEl.textContent = hasLeetCodeStreak ? 'LC Streak' : 'Streak';
+  if (statStreakLabelEl) statStreakLabelEl.textContent = 'Rhythm';
   document.getElementById('ss-time').textContent = fmtMs(todayMs);
   document.getElementById('ss-leet').textContent = t.leetcodeSolved||0;
 
@@ -344,8 +479,10 @@ function renderHeader(data) {
 
   const evo = getEvo(t.todayFocusMs||0);
   const evoNames = {pichu:'Pichu',pikachu:'Pikachu',raichu:'Raichu'};
-  document.getElementById('t-level').textContent = 'Level '+(t.level||1)+' · '+evoNames[evo];
-  renderPartner(evo);
+  const companion = getCompanionForm(t);
+  const levelEl = document.getElementById('t-level');
+  if (levelEl) levelEl.textContent = 'Level '+(t.level||1)+' - '+(COMPANION_NAMES[companion] || evoNames[evo] || 'Companion');
+  renderPartner(companion);
 
   // Update evo strip
   ['pichu','pikachu','raichu'].forEach(id => {
@@ -377,6 +514,271 @@ function getProductivityCategory(type) {
     'General': 'General'
   };
   return map[type] || 'General';
+}
+
+function getSessionEnd(s = {}) {
+  return num(s.endTime || s.timestamp || s.startTime);
+}
+
+function getSessionStart(s = {}) {
+  return num(s.startTime || s.timestamp || s.endTime);
+}
+
+function getUrlPath(url = '') {
+  try {
+    return new URL(url).pathname.toLowerCase();
+  } catch {
+    return String(url || '').toLowerCase();
+  }
+}
+
+function getGithubTarget(url = '', fallback = 'GitHub') {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && !['notifications', 'settings', 'pulls', 'issues', 'search', 'trending', 'explore'].includes(parts[0])) {
+      return `${parts[0]}/${parts[1]}`;
+    }
+  } catch {}
+  return fallback;
+}
+
+function videoLooksEducational(session, data) {
+  const url = String(session.url || '');
+  const match = (data.videos || []).find(v => {
+    if (!v.url || !url) return false;
+    return v.url === url || url.includes(v.video_id || '___missing_video_id___');
+  });
+  if (match) return Boolean(match.educational);
+  const text = `${session.url || ''} ${session.title || ''}`.toLowerCase();
+  return ['tutorial', 'course', 'learn', 'coding', 'programming', 'lecture', 'explained', 'system design'].some(word => text.includes(word));
+}
+
+function classifyDevActivity(session = {}, data = {}) {
+  const domain = String(session.domain || '').replace(/^www\./, '');
+  const path = getUrlPath(session.url || '');
+  const type = session.type || '';
+
+  if (domain.includes('leetcode.com')) {
+    if (path.includes('/discuss')) return { label: 'LeetCode discuss', kind: 'neutral', detail: 'discussion tab' };
+    if (path.includes('/problems/')) return { label: 'LeetCode problem', kind: 'flow', detail: 'problem solving' };
+    return { label: 'LeetCode', kind: 'flow', detail: 'training' };
+  }
+
+  if (domain === 'github.com') {
+    const target = getGithubTarget(session.url, 'GitHub');
+    if (path.startsWith('/notifications')) return { label: 'GitHub notifications', kind: 'interruption', detail: 'notification queue' };
+    if (path.includes('/pull/') || path.includes('/pulls')) return { label: `${target} PR review`, kind: 'flow', detail: 'pull request' };
+    if (path.includes('/commit') || path.includes('/commits')) return { label: `${target} commits`, kind: 'flow', detail: 'commit history' };
+    if (path.includes('/issues')) return { label: `${target} issues`, kind: 'flow', detail: 'issue work' };
+    if (path.startsWith('/trending') || path.startsWith('/explore') || path.startsWith('/topics') || path.startsWith('/search')) {
+      return { label: 'GitHub browsing', kind: 'neutral', detail: 'repo discovery' };
+    }
+    return { label: target, kind: 'flow', detail: 'repo work' };
+  }
+
+  if (domain.includes('youtube.com')) {
+    if (path.startsWith('/shorts')) return { label: 'YouTube Shorts', kind: 'interruption', detail: 'short-form video' };
+    return videoLooksEducational(session, data)
+      ? { label: 'YouTube learning', kind: 'flow', detail: 'tutorial video' }
+      : { label: 'YouTube', kind: 'interruption', detail: 'video break' };
+  }
+
+  if (domain.includes('stackoverflow.com') || domain.includes('developer.mozilla.org') || domain.includes('docs.') || domain.includes('readthedocs') || domain.includes('devdocs.io')) {
+    return { label: domain, kind: 'flow', detail: 'research' };
+  }
+
+  if (domain.includes('chatgpt.com') || domain.includes('claude.ai')) {
+    return { label: domain, kind: 'flow', detail: 'AI-assisted work' };
+  }
+
+  if (type === 'Social' || type === 'Entertainment') return { label: domain || type, kind: 'interruption', detail: type.toLowerCase() };
+  if (['Development', 'Training Ground', 'Research', 'Productivity', 'AI Assistant'].includes(type)) {
+    return { label: domain || type, kind: 'flow', detail: type.toLowerCase() };
+  }
+  return { label: domain || 'Unknown', kind: 'neutral', detail: 'uncategorized' };
+}
+
+function buildFlowBlocks(data = {}) {
+  const sessions = ts(data.sessions)
+    .filter(s => num(s.durationMs) >= FLOW_MIN_SESSION_MS)
+    .sort((a, b) => getSessionStart(a) - getSessionStart(b));
+  const blocks = [];
+
+  sessions.forEach(session => {
+    const activity = classifyDevActivity(session, data);
+    const start = getSessionStart(session);
+    const end = getSessionEnd(session);
+    const last = blocks[blocks.length - 1];
+    const canMerge = last
+      && last.label === activity.label
+      && last.kind === activity.kind
+      && start - last.endTime <= 2 * 60 * 1000;
+
+    if (canMerge) {
+      last.endTime = Math.max(last.endTime, end);
+      last.durationMs += num(session.durationMs);
+      last.sessions += 1;
+      last.inProgress = Boolean(last.inProgress || session.inProgress);
+    } else {
+      blocks.push({
+        label: activity.label,
+        kind: activity.kind,
+        detail: activity.detail,
+        startTime: start,
+        endTime: end,
+        durationMs: num(session.durationMs),
+        sessions: 1,
+        inProgress: Boolean(session.inProgress)
+      });
+    }
+  });
+
+  return blocks;
+}
+
+function computeConsistency(data = {}) {
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toDateString());
+  }
+
+  const dayTotals = Object.fromEntries(dates.map(date => [date, 0]));
+  (data.sessions || []).forEach(session => {
+    if (!(session.date in dayTotals) || num(session.durationMs) < FLOW_MIN_SESSION_MS) return;
+    if (classifyDevActivity(session, data).kind === 'flow') {
+      dayTotals[session.date] += num(session.durationMs);
+    }
+  });
+
+  const completeDays = Object.values(dayTotals).filter(ms => ms >= FLOW_DAY_GOAL_MS).length;
+  return { completeDays, dayTotals };
+}
+
+function computeFlowMetrics(data = {}) {
+  const blocks = buildFlowBlocks(data);
+  const flowBlocks = blocks.filter(block => block.kind === 'flow');
+  const switches = Math.max(0, blocks.length - 1);
+  const interruptionBlocks = blocks.filter(block => block.kind !== 'flow');
+  const recoveryTriggers = blocks.filter((block, index) => index > 0 && block.kind !== 'flow' && blocks[index - 1].kind === 'flow').length;
+  const flowBeforeSwitch = blocks
+    .filter((block, index) => block.kind === 'flow' && blocks[index + 1])
+    .map(block => block.durationMs);
+  const avgBeforeSwitch = flowBeforeSwitch.length
+    ? flowBeforeSwitch.reduce((sum, ms) => sum + ms, 0) / flowBeforeSwitch.length
+    : (flowBlocks.length ? flowBlocks.reduce((sum, block) => sum + block.durationMs, 0) / flowBlocks.length : 0);
+  const longestFlowMs = flowBlocks.reduce((max, block) => Math.max(max, block.durationMs), 0);
+  const interrupters = {};
+  interruptionBlocks.forEach(block => {
+    if (!interrupters[block.label]) interrupters[block.label] = { count: 0, durationMs: 0 };
+    interrupters[block.label].count += 1;
+    interrupters[block.label].durationMs += block.durationMs;
+  });
+  const topInterrupter = Object.entries(interrupters)
+    .sort((a, b) => (b[1].count - a[1].count) || (b[1].durationMs - a[1].durationMs))[0];
+  const consistency = computeConsistency(data);
+
+  return {
+    blocks,
+    switches,
+    recoveryTriggers,
+    recoveryMs: recoveryTriggers * RECOVERY_COST_MS,
+    avgBeforeSwitch,
+    longestFlowMs,
+    topInterrupter: topInterrupter ? topInterrupter[0] : 'None',
+    consistency
+  };
+}
+
+const flowMetricsCache = new WeakMap();
+
+function getFlowMetrics(data = {}) {
+  if (!data || typeof data !== 'object') return computeFlowMetrics(data);
+  if (!flowMetricsCache.has(data)) {
+    flowMetricsCache.set(data, computeFlowMetrics(data));
+  }
+  return flowMetricsCache.get(data);
+}
+
+function buildFlowSummary(metrics) {
+  if (!metrics.blocks.length) return 'No uninterrupted developer flow yet.';
+  if (!metrics.recoveryTriggers) return 'No flow-breaking interruptions detected today.';
+  return `${metrics.recoveryTriggers} flow break${metrics.recoveryTriggers !== 1 ? 's' : ''} detected. Protect the next block from ${metrics.topInterrupter}.`;
+}
+
+function renderFlowAutopsy(data) {
+  const metrics = getFlowMetrics(data);
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  setText('flow-longest', fmtMs(metrics.longestFlowMs));
+  setText('flow-summary', buildFlowSummary(metrics));
+  setText('flow-consistency', `${metrics.consistency.completeDays}/7`);
+  setText('flow-average', fmtMs(metrics.avgBeforeSwitch));
+  setText('flow-switches', metrics.switches);
+  setText('flow-recovery', fmtMs(metrics.recoveryMs));
+  setText('flow-interrupter', metrics.topInterrupter);
+
+  const sequence = document.getElementById('flow-sequence');
+  if (sequence) {
+    const blocks = metrics.blocks.slice(-8);
+    sequence.innerHTML = blocks.length ? blocks.map(block => {
+      const cls = block.kind === 'flow' ? 'flow-good' : block.kind === 'interruption' ? 'flow-warn' : 'flow-neutral';
+      const live = block.inProgress ? ' live' : '';
+      return `<div class="flow-chip ${cls}" title="${esc(block.detail)}">
+        <span class="flow-chip-name">${esc(block.label)}</span>
+        <span class="flow-chip-meta">${fmtMs(block.durationMs)}${live}</span>
+      </div>`;
+    }).join('') : '<div class="flow-chip flow-neutral"><span class="flow-chip-name">No activity</span><span class="flow-chip-meta">Start a flow block</span></div>';
+  }
+
+  return metrics;
+}
+
+function buildPrivacyDebugPayload(data, metrics) {
+  const current = (ts(data.sessions).find(s => s.inProgress) || null);
+  return {
+    generatedAt: new Date().toISOString(),
+    storage: 'Local IndexedDB + chrome.storage.local',
+    network: {
+      accountSync: 'GitHub and LeetCode public profile APIs only when configured',
+      classification: 'on-device URL and session pattern rules'
+    },
+    currentSession: current ? {
+      domain: current.domain,
+      url: current.url,
+      type: current.type,
+      durationMs: current.durationMs,
+      activity: classifyDevActivity(current, data)
+    } : null,
+    trainer: {
+      trainerName: data.trainer?.trainerName || '',
+      partnerPokemon: data.trainer?.partnerPokemon || 'pikachu',
+      githubUsername: data.trainer?.githubUsername || '',
+      leetcodeUsername: data.trainer?.leetcodeUsername || '',
+      trackingPaused: Boolean(data.trainer?.trackingPaused),
+      flowGuardEnabled: data.trainer?.flowGuardEnabled !== false
+    },
+    flow: {
+      longestFlowMs: metrics.longestFlowMs,
+      switches: metrics.switches,
+      recoveryTriggers: metrics.recoveryTriggers,
+      estimatedRecoveryMs: metrics.recoveryMs,
+      consistency: metrics.consistency.completeDays + '/7'
+    },
+    todaySessions: ts(data.sessions).map(session => ({
+      domain: session.domain,
+      url: session.url,
+      type: session.type,
+      durationMs: session.durationMs,
+      inProgress: Boolean(session.inProgress),
+      activity: classifyDevActivity(session, data)
+    }))
+  };
 }
 
 // ── RENDER CAUGHT ────────────────────────────────────────────
@@ -538,6 +940,7 @@ function renderRoute(data) {
         domain: domain,
         type: s.type,
         firstVisitTime: s.startTime,
+        lastVisitTime: getSessionEnd(s),
         durationMs: 0,
         xp: 0,
         inProgress: false
@@ -548,6 +951,7 @@ function renderRoute(data) {
     if (s.startTime < groups[domain].firstVisitTime) {
       groups[domain].firstVisitTime = s.startTime;
     }
+    groups[domain].lastVisitTime = Math.max(groups[domain].lastVisitTime || 0, getSessionEnd(s));
     if (s.inProgress) {
       groups[domain].inProgress = true;
     }
@@ -559,21 +963,22 @@ function renderRoute(data) {
   rl.innerHTML = groupedList.map(g => {
     const d = new Date(g.firstVisitTime);
     const t = d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+    const endDate = new Date(g.lastVisitTime || g.firstVisitTime);
+    const endText = endDate.getHours().toString().padStart(2,'0')+':'+endDate.getMinutes().toString().padStart(2,'0');
+    const timeText = endText !== t ? `${t}-${endText}` : t;
     const c = ROUTE_COL[g.type]||'#6b7280';
     
     // Format duration string: if active in-progress session, append "and counting"
     let durStr = fmtMs(g.durationMs);
     if (g.inProgress) {
-      const mins = Math.round(g.durationMs / 60000);
-      const displayMins = mins < 1 ? '1m' : mins + 'm';
-      durStr = `${displayMins} and counting`;
+      durStr = `${fmtMs(g.durationMs)} live`;
     }
     
     const pulseStyle = g.inProgress ? ' animation: pulse 1.5s infinite alternate;' : '';
     const activeClass = g.inProgress ? 'active-stop' : '';
 
     return `<div class="route-stop ${activeClass}">
-      <span class="rt-time">${t}</span>
+      <span class="rt-time">${timeText}</span>
       <div class="rt-dot-anchor">
         <div class="rt-dot" style="color:${c};background-color:${c};${pulseStyle}"></div>
       </div>
@@ -704,8 +1109,13 @@ function renderOak(data) {
   const todaySess = ts(data.sessions);
   const todayMs = todaySess.reduce((a,s)=>a+s.durationMs,0);
   const displayStreak = getDisplayStreak(t);
+  const flow = getFlowMetrics(data);
   const rows = [
     ['Active today',     fmtMs(todayMs)],
+    ['Longest flow',     fmtMs(flow.longestFlowMs)],
+    ['Switches',         String(flow.switches)],
+    ['Recovery cost',    fmtMs(flow.recoveryMs)],
+    ['7-day consistency', flow.consistency.completeDays + '/7 days'],
     ['XP earned',        (t.todayXP||0)+' XP'],
     ['LC solved (all)',  (t.leetcodeSolved||0)+' problems'],
     ['LC today',         (t.leetcodeTodaySolved||0)+' problems'],
@@ -721,6 +1131,26 @@ function renderOak(data) {
     <div class="oak-stat"><span class="oak-k">${k}</span><span class="oak-v">${v}</span></div>`).join('');
 }
 
+let latestPopupData = null;
+let latestFlowMetrics = null;
+
+function renderDashboard(data, options = {}) {
+  latestPopupData = data;
+  renderHeader(data);
+  latestFlowMetrics = renderFlowAutopsy(data);
+  renderFocusDeck(data);
+  renderCaught(data);
+  renderRoute(data);
+  renderBattles(data);
+  renderGym(data);
+  if (options.includeOak !== false) renderOak(data);
+
+  const privacyDebugOutput = document.getElementById('privacy-debug-output');
+  if (privacyDebugOutput && !privacyDebugOutput.classList.contains('hidden')) {
+    privacyDebugOutput.textContent = JSON.stringify(buildPrivacyDebugPayload(latestPopupData, latestFlowMetrics), null, 2);
+  }
+}
+
 async function generateOak() {
   const key = document.getElementById('api-key').value.trim();
   if (!key) {
@@ -731,7 +1161,7 @@ async function generateOak() {
   document.getElementById('oak-loading').style.display='block';
   document.getElementById('oak-result').innerHTML='';
 
-  chrome.runtime.sendMessage({type:'GET_DATA'}, async data=>{
+  sendRuntimeMessage({type:'GET_DATA'}, async data=>{
     const t=data.trainer||{};
     const todaySess=ts(data.sessions);
     const tMs=todaySess.reduce((a,s)=>a+s.durationMs,0);
@@ -740,12 +1170,19 @@ async function generateOak() {
     const siteSumm=Object.entries(sMap).map(([d,ms])=>`${d}: ${Math.round(ms/60000)}min`).join(', ')||'none';
     const vids=(data.videos||[]).filter(v=>v.date===todayStr());
     const batt=(data.battles||[]).filter(b=>b.date===todayStr());
+    const flow = getFlowMetrics(data);
 
-    const prompt = `You are Professor Oak from Pokémon giving trainer ${t.trainerName || 'Trainer'} their daily productivity analysis. Be warm, sharp and use light Pokémon metaphors.
+    const prompt = `You are Professor Oak from Pokemon giving trainer ${t.trainerName || 'Trainer'} a developer flow-state autopsy. Be warm, sharp, and privacy-respecting. Do not judge the person; identify what fragmented their flow and suggest one protective action.
 
 Data:
 - Active time: ${Math.round(tMs/60000)} minutes
 - Sites: ${siteSumm}
+- Longest uninterrupted developer flow: ${Math.round(flow.longestFlowMs/60000)} minutes
+- Average flow before a switch: ${Math.round(flow.avgBeforeSwitch/60000)} minutes
+- Context switches: ${flow.switches}
+- Estimated recovery cost: ${Math.round(flow.recoveryMs/60000)} minutes
+- Top interrupter: ${flow.topInterrupter}
+- Rolling 7-day consistency: ${flow.consistency.completeDays}/7 days
 - LeetCode solved total: ${t.leetcodeSolved||0}, today: ${t.leetcodeTodaySolved||0}
 - LeetCode streak: ${getDisplayStreak(t)} days
 - GitHub commits today: ${num(t.githubTodayCommits)}
@@ -755,7 +1192,7 @@ Data:
 - Focus battles: ${batt.filter(b=>b.won).length} wins / ${batt.length} total
 - XP today: ${t.todayXP||0}
 
-Write 4-5 sentences: (1) biggest win today, (2) one weakness or pattern to fix, (3) one concrete action for tomorrow. End with a brief Pokémon-themed encouragement.`;
+Write 4-5 sentences: (1) biggest protected-flow win today, (2) the main interruption pattern, (3) the recovery-time cost in plain language, (4) one concrete action for tomorrow. End with brief Pokemon-themed encouragement.`;
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages',{
@@ -801,8 +1238,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Anthropic API Key listener
   if (ki) {
-    chrome.storage.local.get('oakKey', d => { if(d.oakKey) ki.value = d.oakKey; });
-    ki.addEventListener('change', () => chrome.storage.local.set({ oakKey: ki.value }));
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get('oakKey', d => { if(d.oakKey) ki.value = d.oakKey; });
+      ki.addEventListener('change', () => chrome.storage.local.set({ oakKey: ki.value }));
+    }
   }
 
   // Settings handles
@@ -814,14 +1253,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const ccInput = document.getElementById('codechef-handle');
   const hrInput = document.getElementById('hackerrank-username');
   const trackingPausedInput = document.getElementById('tracking-paused');
+  const flowGuardInput = document.getElementById('flow-guard-enabled');
   const syncBtn = document.getElementById('sync-now-btn');
   const syncStatus = document.getElementById('sync-status');
   const syncHeaderBtn = document.getElementById('sync-header-btn');
   const exportBtn = document.getElementById('export-data-btn');
   const exportStatus = document.getElementById('export-status');
 
+  if (partnerInput) {
+    partnerInput.disabled = false;
+    partnerInput.title = 'Choose your companion.';
+    partnerInput.innerHTML = [
+      ['pikachu', 'Pikachu family'],
+      ['bulbasaur', 'Bulbasaur'],
+      ['charmander', 'Charmander'],
+      ['squirtle', 'Squirtle'],
+      ['eevee', 'Eevee']
+    ].map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+  }
+
   // Load handles and populate inputs
-  chrome.runtime.sendMessage({type: 'GET_DATA'}, data => {
+  sendRuntimeMessage({type: 'GET_DATA', refreshLive: true}, data => {
     if (data && data.trainer) {
       const t = data.trainer;
       if (nameInput && t.trainerName) nameInput.value = t.trainerName;
@@ -832,6 +1284,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (ccInput && t.codechefHandle) ccInput.value = t.codechefHandle;
       if (hrInput && t.hackerrankUsername) hrInput.value = t.hackerrankUsername;
       if (trackingPausedInput) trackingPausedInput.checked = Boolean(t.trackingPaused);
+      if (flowGuardInput) flowGuardInput.checked = t.flowGuardEnabled !== false;
     }
   });
 
@@ -846,25 +1299,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
       codechefHandle: ccInput ? ccInput.value.trim() : '',
       hackerrankUsername: hrInput ? hrInput.value.trim() : '',
       trackingPaused: trackingPausedInput ? trackingPausedInput.checked : false,
+      flowGuardEnabled: flowGuardInput ? flowGuardInput.checked : true,
       onboarded: true
     };
-    chrome.runtime.sendMessage({type: 'UPDATE_PROFILE', fields}, () => {
+    sendRuntimeMessage({type: 'UPDATE_PROFILE', fields}, () => {
       // Refresh popup stats
-      chrome.runtime.sendMessage({type: 'GET_DATA'}, refreshData => {
+      sendRuntimeMessage({type: 'GET_DATA', refreshLive: true}, refreshData => {
         if (refreshData) {
-          renderHeader(refreshData);
-          renderFocusDeck(refreshData);
-          renderCaught(refreshData);
-          renderRoute(refreshData);
-          renderBattles(refreshData);
-          renderGym(refreshData);
-          renderOak(refreshData);
+          renderDashboard(refreshData);
         }
       });
     });
   };
 
-  [nameInput, partnerInput, lcInput, ghInput, cfInput, ccInput, hrInput, trackingPausedInput].forEach(inp => {
+  [nameInput, partnerInput, lcInput, ghInput, cfInput, ccInput, hrInput, trackingPausedInput, flowGuardInput].forEach(inp => {
     if (inp) inp.addEventListener('change', saveFields);
   });
 
@@ -876,7 +1324,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       syncStatus.textContent = 'Syncing... 🔄';
       syncStatus.style.color = 'var(--muted)';
     }
-    chrome.runtime.sendMessage({type: 'SYNC_ACCOUNTS', force: true}, res => {
+    sendRuntimeMessage({type: 'SYNC_ACCOUNTS', force: true}, res => {
       if (indicatorBtn) indicatorBtn.classList.remove('spinning');
       if (res && res.success) {
         if (syncStatus) {
@@ -892,15 +1340,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
             syncStatus.style.color = '#10b981';
           }
         }
-        chrome.runtime.sendMessage({type: 'GET_DATA'}, refreshData => {
+        sendRuntimeMessage({type: 'GET_DATA', refreshLive: true}, refreshData => {
           if (refreshData) {
-            renderHeader(refreshData);
-            renderFocusDeck(refreshData);
-            renderCaught(refreshData);
-            renderRoute(refreshData);
-            renderBattles(refreshData);
-            renderGym(refreshData);
-            renderOak(refreshData);
+            renderDashboard(refreshData);
           }
         });
       } else {
@@ -931,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         exportStatus.style.color = 'var(--muted)';
         exportStatus.textContent = 'Preparing export...';
       }
-      chrome.runtime.sendMessage({type: 'EXPORT_DATA'}, res => {
+      sendRuntimeMessage({type: 'EXPORT_DATA'}, res => {
         exportBtn.disabled = false;
         if (!res?.success) {
           if (exportStatus) {
@@ -984,6 +1426,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 
+  const privacyDebugBtn = document.getElementById('privacy-debug-btn');
+  const privacyDebugOutput = document.getElementById('privacy-debug-output');
+  if (privacyDebugBtn && privacyDebugOutput) {
+    privacyDebugBtn.addEventListener('click', () => {
+      if (!latestPopupData || !latestFlowMetrics) return;
+      const isHidden = privacyDebugOutput.classList.contains('hidden');
+      if (isHidden) {
+        privacyDebugOutput.textContent = JSON.stringify(buildPrivacyDebugPayload(latestPopupData, latestFlowMetrics), null, 2);
+        privacyDebugOutput.classList.remove('hidden');
+        privacyDebugBtn.textContent = 'Hide local data';
+      } else {
+        privacyDebugOutput.classList.add('hidden');
+        privacyDebugBtn.textContent = 'Inspect local data';
+      }
+    });
+  }
+
   function initOnboarding(form) {
     const obCanvas = document.getElementById('ob-mascot-canvas');
     if (obCanvas) {
@@ -1008,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
 
-  chrome.runtime.sendMessage({type:'GET_DATA'}, data=>{
+  sendRuntimeMessage({type:'GET_DATA', refreshLive: true}, data=>{
     if (!data) { console.warn('PikaDex: no data from background'); return; }
     
     const t = data.trainer || {};
@@ -1025,33 +1484,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (onboardingOverlay) onboardingOverlay.style.display = 'none';
     }
 
-    renderHeader(data);
-    renderFocusDeck(data);
-    renderCaught(data);
-    renderRoute(data);
-    renderBattles(data);
-    renderGym(data);
-    renderOak(data);
+    renderDashboard(data);
 
-    // Auto-refresh stats list every 5 seconds to support live "and counting" clock updates
+    // Keep popup stats close to live without stacking overlapping reads.
+    let liveRefreshInFlight = false;
     setInterval(() => {
-      chrome.runtime.sendMessage({type:'GET_DATA'}, refreshData => {
+      if (liveRefreshInFlight) return;
+      liveRefreshInFlight = true;
+      const refreshTimeout = setTimeout(() => {
+        liveRefreshInFlight = false;
+      }, POPUP_LIVE_REFRESH_MS * 3);
+      sendRuntimeMessage({type:'GET_DATA', refreshLive: true}, refreshData => {
+        clearTimeout(refreshTimeout);
+        liveRefreshInFlight = false;
         if (refreshData && refreshData.trainer && refreshData.trainer.onboarded) {
-          renderHeader(refreshData);
-          renderFocusDeck(refreshData);
-          renderCaught(refreshData);
-          renderRoute(refreshData);
-          renderBattles(refreshData);
-          renderGym(refreshData);
+          renderDashboard(refreshData, { includeOak: false });
         }
       });
-    }, 5000);
+    }, POPUP_LIVE_REFRESH_MS);
   });
 
   const btnOpenOnboarding = document.getElementById('btn-open-onboarding');
   if (btnOpenOnboarding) {
     btnOpenOnboarding.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+      if (typeof chrome !== 'undefined' && chrome.tabs && chrome.runtime?.getURL) {
+        chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+      } else {
+        window.location.href = 'welcome.html';
+      }
     });
   }
 });

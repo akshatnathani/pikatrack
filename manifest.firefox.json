@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "PikaDex",
   "version": "2.0.0",
-  "description": "Your Pokemon productivity companion. Catch websites, earn XP, and evolve your focus partner.",
+  "description": "A local-first developer flow protector that detects context switches, recovery cost, and coding focus patterns.",
   "permissions": [
     "tabs",
     "storage",
