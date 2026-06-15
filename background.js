@@ -3,6 +3,7 @@ const DB_VERSION = 3;
 const POPUP_RECORD_LIMIT = 350;
 const SYNC_CACHE_TTL_MS = 5 * 60 * 1000;
 const GITHUB_LIVE_CACHE_TTL_MS = 60 * 1000;
+const ACCOUNT_LIVE_SYNC_TTL_MS = 60 * 1000;
 const GITHUB_API_HEADERS = {
   'Accept': 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28'
@@ -248,6 +249,7 @@ function resetDailyTrainerFields(t, today) {
   t.todayXP = 0;
   t.todayFocusMs = 0;
   t.leetcodeTodaySolved = 0;
+  t.leetcodeTodaySolvedSlugs = { date: localDateKey(), slugs: {} };
   t.githubTodayCommits = 0;
   t.githubTodayContributions = 0;
   t.lastGitHubTodayCommitsAwarded = 0;
@@ -263,7 +265,7 @@ function resetDailyTrainerFields(t, today) {
     'AI Tools': 0,
     'General': 0
   };
-  t.lastEvoStage = 'pichu';
+  t.lastEvoStage = getCompanionEvolutionForm(t.partnerPokemon || 'pikachu', 0);
   t.lastDate = today;
 }
 
@@ -294,6 +296,8 @@ async function getOrCreateTrainer() {
       leetcodeStreak: 0,
       leetcodeTotalActiveDays: 0,
       leetcodeLastActiveDate: '',
+      leetcodeTodaySolvedSlugs: { date: localDateKey(), slugs: {} },
+      leetcodeSolvedLiveSlugs: {},
       lastGitHubCommits: 0,
       lastGitHubPRs: 0,
       lastGitHubIssues: 0,
@@ -317,6 +321,7 @@ async function getOrCreateTrainer() {
     trainerName: 'Trainer',
     onboarded: true,
     partnerPokemon: 'pikachu',
+    lastEvoStage: 'pichu',
     trackingPaused: false,
     flowGuardEnabled: true,
     leetcodeUsername: '',
@@ -328,6 +333,8 @@ async function getOrCreateTrainer() {
     leetcodeStreak: 0,
     leetcodeTotalActiveDays: 0,
     leetcodeLastActiveDate: '',
+    leetcodeTodaySolvedSlugs: { date: localDateKey(), slugs: {} },
+    leetcodeSolvedLiveSlugs: {},
     lastGitHubCommits: 0,
     lastGitHubPRs: 0,
     lastGitHubIssues: 0,
@@ -358,6 +365,10 @@ async function getOrCreateTrainer() {
       t[k] = JSON.parse(JSON.stringify(v));
       updated = true;
     }
+  }
+  if (!getCompanionChain(t.partnerPokemon || 'pikachu').includes(t.lastEvoStage)) {
+    t.lastEvoStage = getCompanionEvolutionForm(t.partnerPokemon || 'pikachu', t.todayFocusMs || 0);
+    updated = true;
   }
   if (updated) {
     await dbPut('trainer', t);
@@ -398,13 +409,55 @@ function getSiteInfo(domain) {
   return {type:'General', xpPerMin:0.5, icon:'🌐', domain};
 }
 
-// Evolution based on TODAY's focus hours
-// Pichu: default, Pikachu: 3h+, Raichu: 10h+
+const COMPANION_CHAINS = {
+  pikachu: ['pichu', 'pikachu', 'raichu'],
+  bulbasaur: ['bulbasaur', 'ivysaur', 'venusaur'],
+  charmander: ['charmander', 'charmeleon', 'charizard'],
+  squirtle: ['squirtle', 'wartortle', 'blastoise'],
+  eevee: ['eevee', 'espeon', 'umbreon']
+};
+
+const COMPANION_NAMES = {
+  pichu: 'Pichu',
+  pikachu: 'Pikachu',
+  raichu: 'Raichu',
+  bulbasaur: 'Bulbasaur',
+  ivysaur: 'Ivysaur',
+  venusaur: 'Venusaur',
+  charmander: 'Charmander',
+  charmeleon: 'Charmeleon',
+  charizard: 'Charizard',
+  squirtle: 'Squirtle',
+  wartortle: 'Wartortle',
+  blastoise: 'Blastoise',
+  eevee: 'Eevee',
+  espeon: 'Espeon',
+  umbreon: 'Umbreon'
+};
+
+function getCompanionChain(partner = 'pikachu') {
+  return COMPANION_CHAINS[partner] || COMPANION_CHAINS.pikachu;
+}
+
+function getEvoIndex(todayFocusMs) {
+  const h = (todayFocusMs || 0) / 3600000;
+  if (h >= 10) return 2;
+  if (h >= 3) return 1;
+  return 0;
+}
+
+// Evolution based on TODAY's focus hours.
 function getEvoStage(todayFocusMs) {
-  const h = todayFocusMs / 3600000;
-  if (h >= 10) return 'raichu';
-  if (h >= 3)  return 'pikachu';
-  return 'pichu';
+  return getCompanionChain('pikachu')[getEvoIndex(todayFocusMs)];
+}
+
+function getCompanionEvolutionForm(partner, todayFocusMs) {
+  const chain = getCompanionChain(partner);
+  return chain[getEvoIndex(todayFocusMs)] || chain[0];
+}
+
+function getCompanionName(form) {
+  return COMPANION_NAMES[form] || 'Companion';
 }
 
 // --- Active Time Engine Variables and Helpers ---
@@ -645,7 +698,7 @@ function cleanString(value, maxLength = 80) {
   return String(value || '').trim().slice(0, maxLength);
 }
 
-const PARTNER_FORMS = new Set(['pikachu', 'bulbasaur', 'charmander', 'squirtle', 'eevee']);
+const PARTNER_FORMS = new Set(Object.keys(COMPANION_CHAINS));
 
 function sanitizeProfileFields(fields = {}) {
   const allowed = {
@@ -677,6 +730,71 @@ function resetLeetCodeSyncState(t) {
   t.leetcodeTotalActiveDays = 0;
   t.leetcodeLastActiveDate = '';
   t.leetcodeProblems = {};
+  t.leetcodeTodaySolvedSlugs = { date: localDateKey(), slugs: {} };
+  t.leetcodeSolvedLiveSlugs = {};
+}
+
+function normalizeLeetCodeSlug(value) {
+  return cleanString(value, 120).toLowerCase().replace(/[^a-z0-9-]/g, '');
+}
+
+function getTodayLeetCodeSolvedSlugs(t) {
+  const today = localDateKey();
+  if (!t.leetcodeTodaySolvedSlugs || t.leetcodeTodaySolvedSlugs.date !== today) {
+    t.leetcodeTodaySolvedSlugs = { date: today, slugs: {} };
+  }
+  t.leetcodeTodaySolvedSlugs.slugs = t.leetcodeTodaySolvedSlugs.slugs || {};
+  return t.leetcodeTodaySolvedSlugs.slugs;
+}
+
+async function recordLiveLeetCodeSolved(msg = {}, sender = {}) {
+  const slug = normalizeLeetCodeSlug(msg.problem || msg.titleSlug);
+  if (!slug) return { ok: false, error: 'Missing LeetCode problem slug' };
+
+  const t = await getOrCreateTrainer();
+  const now = Date.now();
+  const todaySlugs = getTodayLeetCodeSolvedSlugs(t);
+  if (todaySlugs[slug]) {
+    return { ok: true, duplicate: true, problem: slug };
+  }
+
+  todaySlugs[slug] = now;
+  t.leetcodeSolvedLiveSlugs = t.leetcodeSolvedLiveSlugs || {};
+  const isNewLiveSlug = !t.leetcodeSolvedLiveSlugs[slug];
+  t.leetcodeSolvedLiveSlugs[slug] = now;
+
+  t.leetcodeProblems = t.leetcodeProblems || {};
+  if (!t.leetcodeProblems[slug]) {
+    t.leetcodeProblems[slug] = { seconds: 0, lastVisited: now };
+  }
+  t.leetcodeProblems[slug].lastVisited = now;
+
+  t.leetcodeTodaySolved = (Number(t.leetcodeTodaySolved) || 0) + 1;
+  if (isNewLiveSlug) {
+    const solvedBase = Math.max(Number(t.leetcodeSolved) || 0, Number(t.lastLeetCodeSolved) || 0);
+    t.leetcodeSolved = solvedBase + 1;
+    t.lastLeetCodeSolved = Math.max(Number(t.lastLeetCodeSolved) || 0, t.leetcodeSolved);
+  }
+
+  const date = new Date().toDateString();
+  const xp = 50;
+  t.totalXP = (Number(t.totalXP) || 0) + xp;
+  t.todayXP = (Number(t.todayXP) || 0) + xp;
+  t.level = Math.floor((Number(t.totalXP) || 0) / 500) + 1;
+
+  await dbAdd('sessions', { domain: 'leetcode.com', type: 'Training Ground', startTime: now, endTime: now, durationMs: 0, xp, date, url: msg.url || '', timestamp: now });
+  await dbAdd('battles', { domain: 'leetcode.com', durationMs: 0, won: true, xp, date, timestamp: now });
+  await dbPut('trainer', t);
+
+  if (sender?.tab?.id) {
+    sendTabMessage(sender.tab.id, {
+      type: 'PIKA_CELEBRATE',
+      text: `Accepted ${slug.replace(/-/g, ' ')}. +${xp} XP!`,
+      xp
+    });
+  }
+
+  return { ok: true, problem: slug, xp, todaySolved: t.leetcodeTodaySolved, solved: t.leetcodeSolved };
 }
 
 function resetGitHubSyncState(t) {
@@ -769,19 +887,26 @@ async function closeCurrentSession() {
       t.todayFocusMs = (t.todayFocusMs || 0) + todayFocusMs;
       t.level = Math.floor(t.totalXP / 500) + 1;
 
-      // Handle evolution
-      const newEvo = getEvoStage(t.todayFocusMs);
-      if (newEvo !== (t.lastEvoStage || 'pichu')) {
+      // Handle evolution only when today's focus crosses the 3h or 10h threshold.
+      const previousTodayFocusMs = Math.max(0, (t.todayFocusMs || 0) - todayFocusMs);
+      const previousEvoIndex = getEvoIndex(previousTodayFocusMs);
+      const newEvoIndex = getEvoIndex(t.todayFocusMs || 0);
+      const previousEvo = getCompanionEvolutionForm(t.partnerPokemon || 'pikachu', previousTodayFocusMs);
+      const newEvo = getCompanionEvolutionForm(t.partnerPokemon || 'pikachu', t.todayFocusMs || 0);
+      if (newEvoIndex > previousEvoIndex && newEvo !== previousEvo) {
         t.lastEvoStage = newEvo;
         chrome.tabs.query({ active: true }, tabs => {
           tabs.forEach(tab => {
             sendTabMessage(tab.id, {
               type: 'PIKA_EVOLVE',
               stage: newEvo,
-              text: newEvo === 'pikachu' ? '3 hours of focus. Pikachu powered up!' : '10 hours of focus. Pikachu is fully charged!'
+              partner: t.partnerPokemon || 'pikachu',
+              text: `${getCompanionName(newEvo)} evolved after ${newEvoIndex === 1 ? '3' : '10'} hours of focus!`
             });
           });
         });
+      } else {
+        t.lastEvoStage = newEvo;
       }
       await dbPut('trainer', t);
 
@@ -1607,35 +1732,40 @@ async function syncAccounts(options = {}) {
       const stats = await fetchCachedAccountStats('leetcode', t.leetcodeUsername, () => fetchLeetCodeStats(t.leetcodeUsername), { force: Boolean(options.force) });
       if (stats.fromCache) cachedProviders.push('LeetCode');
       const prevSolved = t.lastLeetCodeSolved || t.leetcodeSolved || 0;
+      const previousTodaySolved = Number(t.leetcodeTodaySolved) || 0;
+      const remoteSolvedToday = Number(stats.solvedToday) || 0;
+      const remoteSolvedAll = Number(stats.all) || 0;
       
       // Set baseline if first sync
       if (prevSolved === 0 && (t.lastLeetCodeSolved === undefined || t.lastLeetCodeSolved === 0)) {
-        t.lastLeetCodeSolved = stats.all;
-        t.leetcodeSolved = stats.all;
-        t.leetcodeTodaySolved = stats.solvedToday;
+        t.lastLeetCodeSolved = remoteSolvedAll;
+        t.leetcodeSolved = Math.max(Number(t.leetcodeSolved) || 0, remoteSolvedAll);
+        t.leetcodeTodaySolved = Math.max(previousTodaySolved, remoteSolvedToday);
 
         // Award XP for today's solves on first connection
-        if (stats.solvedToday > 0) {
-          const xp = stats.solvedToday * 50;
+        const newTodaySolves = Math.max(0, remoteSolvedToday - previousTodaySolved);
+        if (newTodaySolves > 0) {
+          const xp = newTodaySolves * 50;
           t.totalXP += xp;
           t.todayXP += xp;
-          for (let i = 0; i < stats.solvedToday; i++) {
+          for (let i = 0; i < newTodaySolves; i++) {
             await dbAdd('sessions', {domain: 'leetcode.com', type: 'Training Ground', startTime: Date.now(), endTime: Date.now(), durationMs: 0, xp: 50, date});
             await dbAdd('battles', {domain: 'leetcode.com', durationMs: 0, won: true, xp: 50, date, timestamp: Date.now()});
           }
           xpEarned += xp;
-          logEvents.push(`Connected LeetCode: +${stats.solvedToday} Solves Today (+${xp} XP)`);
+          logEvents.push(`Connected LeetCode: +${newTodaySolves} Solves Today (+${xp} XP)`);
         }
       } else {
         // Sync today count directly from LeetCode
-        t.leetcodeTodaySolved = stats.solvedToday;
+        t.leetcodeTodaySolved = Math.max(previousTodaySolved, remoteSolvedToday);
+        t.leetcodeSolved = Math.max(Number(t.leetcodeSolved) || 0, remoteSolvedAll);
 
-        if (stats.all > prevSolved) {
-          const diff = stats.all - prevSolved;
+        if (remoteSolvedAll > prevSolved) {
+          const diff = remoteSolvedAll - prevSolved;
           const xp = diff * 50;
           t.totalXP += xp;
           t.todayXP += xp;
-          t.leetcodeSolved = stats.all;
+          t.leetcodeSolved = Math.max(t.leetcodeSolved, remoteSolvedAll);
 
           // Log events in history
           for (let i = 0; i < diff; i++) {
@@ -1649,7 +1779,7 @@ async function syncAccounts(options = {}) {
       if (stats.streak !== undefined) t.leetcodeStreak = Math.max(0, Number(stats.streak) || 0);
       if (stats.totalActiveDays !== undefined) t.leetcodeTotalActiveDays = Math.max(0, Number(stats.totalActiveDays) || 0);
       if (stats.lastActiveDate !== undefined) t.leetcodeLastActiveDate = stats.lastActiveDate || '';
-      t.lastLeetCodeSolved = stats.all;
+      t.lastLeetCodeSolved = Math.max(Number(t.lastLeetCodeSolved) || 0, remoteSolvedAll, Number(t.leetcodeSolved) || 0);
     } catch (e) {
       syncErrors.push('LeetCode: ' + describeSyncError(e));
       console.warn('PikaDex: LeetCode account sync skipped:', describeSyncError(e));
@@ -1772,6 +1902,29 @@ async function syncAccounts(options = {}) {
   return { success: true, xpEarned, logEvents, syncErrors, cachedProviders, lastSyncTime: t.lastSyncTime };
 }
 
+let accountSyncPromise = null;
+let lastAccountSyncAttemptAt = 0;
+
+function queueAccountSync(options = {}) {
+  const now = Date.now();
+  const ttl = Number(options.ttlMs || ACCOUNT_LIVE_SYNC_TTL_MS);
+  if (!options.force && now - lastAccountSyncAttemptAt < ttl) {
+    return accountSyncPromise || Promise.resolve({ success: true, skipped: true });
+  }
+  if (accountSyncPromise && !options.force) return accountSyncPromise;
+
+  lastAccountSyncAttemptAt = now;
+  accountSyncPromise = syncAccounts({ force: Boolean(options.force) })
+    .catch(error => {
+      console.warn('PikaDex: account sync skipped:', describeSyncError(error));
+      return { success: false, error: describeSyncError(error) };
+    })
+    .finally(() => {
+      accountSyncPromise = null;
+    });
+  return accountSyncPromise;
+}
+
 async function refreshLiveGitHub(options = {}) {
   const initialTrainer = await getOrCreateTrainer();
   const githubUsername = initialTrainer.githubUsername;
@@ -1853,6 +2006,7 @@ function queueLiveGitHubRefresh(options = {}) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type==='GET_DATA') {
     if (msg.refreshLive) {
+      queueAccountSync({ force: Boolean(msg.forceSync), ttlMs: ACCOUNT_LIVE_SYNC_TTL_MS });
       queueLiveGitHubRefresh({ force: Boolean(msg.forceLive), ttlMs: msg.liveTtlMs });
     }
     trackingQueue.catch(() => {})
@@ -1954,11 +2108,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const leetcodeChanged = hasOwn.call(fields, 'leetcodeUsername') && fields.leetcodeUsername !== (t.leetcodeUsername || '');
       const githubChanged = hasOwn.call(fields, 'githubUsername') && fields.githubUsername !== (t.githubUsername || '');
       const trackingPausedChanged = hasOwn.call(fields, 'trackingPaused') && fields.trackingPaused !== Boolean(t.trackingPaused);
+      const partnerChanged = hasOwn.call(fields, 'partnerPokemon') && fields.partnerPokemon !== (t.partnerPokemon || 'pikachu');
 
       Object.assign(t, fields);
       if (leetcodeChanged) resetLeetCodeSyncState(t);
       if (githubChanged) resetGitHubSyncState(t);
       if (leetcodeChanged || githubChanged) t.lastSyncTime = 0;
+      if (partnerChanged) t.lastEvoStage = getCompanionEvolutionForm(t.partnerPokemon || 'pikachu', t.todayFocusMs || 0);
       await dbPut('trainer', t);
       if (trackingPausedChanged && t.trackingPaused) {
         await runTrackingTask(async () => {
@@ -1979,7 +2135,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type==='LEETCODE_SOLVED') {
-    sendResponse({ok:true});
+    recordLiveLeetCodeSolved(msg, sender)
+      .then(res => sendResponse(res))
+      .catch(error => sendResponse({ok:false, error: describeSyncError(error)}));
     return true;
   }
 

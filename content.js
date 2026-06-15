@@ -129,8 +129,119 @@
       "..ss......ss....",
       "................",
       "................"
+    ],
+    ivysaur: [
+      "......sps.......",
+      ".....sppps......",
+      "....splllps.....",
+      "...slllllls.....",
+      "..sgggggggs.....",
+      ".sggwegwegss....",
+      ".sggegggegss....",
+      ".sgggcggcggs....",
+      "..sgggggggs.....",
+      "...sggbggs......",
+      "..sggbbbggs.....",
+      ".sgggggggggs....",
+      ".sggsggggsgs....",
+      "..ss....ss......",
+      "................",
+      "................"
+    ],
+    venusaur: [
+      "....spppppps....",
+      "...spllllllps...",
+      "..spllpppllps...",
+      "..slllllllls....",
+      ".sgggggggggs....",
+      ".sggwegwegss....",
+      ".sggegggegss....",
+      ".sgggcggcggs....",
+      ".sgggggggggs....",
+      "..sgggbgggs.....",
+      ".sgggbbbbggs....",
+      "sgggggggggggs...",
+      "sggsggggggsgs...",
+      ".ss........ss...",
+      "................",
+      "................"
+    ],
+    charmeleon: [
+      "............s...",
+      "...........sfys.",
+      "..........sfyys.",
+      "....ssss..sys...",
+      "...srrrsssys....",
+      "..srrwrrrs......",
+      "..srreerrrs.....",
+      "..srrcrrrrs.....",
+      "...srrrrrs......",
+      "...srrbbbs......",
+      "..srrbbbbss.....",
+      ".srrrrrrrrs.....",
+      ".srrrsrrrs......",
+      "..ss...ss.......",
+      "................",
+      "................"
+    ],
+    charizard: [
+      "...s......s.....",
+      "..srs....srs....",
+      ".srrs..srrrs....",
+      ".srrrrssrrrrs...",
+      "..srrrrrrrrs....",
+      "..srrwrrrwrs....",
+      "..srreerrers....",
+      "...srrcrrrs.....",
+      "...srrrrrs..s...",
+      "..srrbbbrrssfs..",
+      ".srrrrrrrrsyys..",
+      ".srrrsrrrs.sys..",
+      "..ss...ss..s....",
+      "................",
+      "................",
+      "................"
+    ],
+    wartortle: [
+      "...s........s...",
+      "..sws....sws....",
+      "...suuuus.......",
+      "..suuwuuus......",
+      "..suueuuus......",
+      "..suucuuus......",
+      "...suuuuss......",
+      "..skkkkkkus.....",
+      ".skkbbbbbks.....",
+      ".skkbbbbbkks....",
+      ".sukkkkkkuus....",
+      "..suuuuuuus.....",
+      "..suuussuus..s..",
+      "...ss...ss..ss..",
+      "................",
+      "................"
+    ],
+    blastoise: [
+      "..m........m....",
+      ".sms..ssss..sms.",
+      "..suuuuuus......",
+      ".suuwuuuwus.....",
+      ".suueuuueus.....",
+      ".suucuuucus.....",
+      "..suuuuuuss.....",
+      ".skkkkkkkkus....",
+      "skkbbbbbbbks....",
+      "skkbbbbbbbkk....",
+      "sukkkkkkkkuus...",
+      ".suuuuuuuuus....",
+      ".suuusssuuus....",
+      "..ss.....ss.....",
+      "................",
+      "................"
     ]
   };
+
+  PIXEL_GRIDS.espeon = PIXEL_GRIDS.eevee;
+  PIXEL_GRIDS.umbreon = PIXEL_GRIDS.eevee;
 
   const PIXEL_PALETTES = {
     pichu: {
@@ -153,6 +264,30 @@
     },
     eevee: {
       n: '#9a633a', b: '#f4dfb3', c: '#d98b7c', a: '#6f4428', s: '#3a2416', e: '#3a2416', w: '#ffffff'
+    },
+    ivysaur: {
+      g: '#4fb88f', b: '#c1f0dc', l: '#3f8f50', p: '#d774c7', c: '#ec6f7f', d: '#2f6d3d', s: '#153827', e: '#153827', w: '#ffffff'
+    },
+    venusaur: {
+      g: '#3f9f78', b: '#d8f5e8', l: '#2f7d40', p: '#e86aa3', c: '#ec6f7f', d: '#275d37', s: '#102f22', e: '#102f22', w: '#ffffff'
+    },
+    charmeleon: {
+      r: '#dc4b2f', b: '#ffd08a', c: '#f08055', f: '#ff3528', y: '#ffd447', s: '#471b10', e: '#471b10', w: '#ffffff'
+    },
+    charizard: {
+      r: '#d95d24', b: '#ffe1a6', c: '#f08a42', f: '#ff3528', y: '#ffd447', s: '#3b170d', e: '#3b170d', w: '#ffffff'
+    },
+    wartortle: {
+      u: '#5da7de', b: '#fff0c2', k: '#7b6347', c: '#ff9aa8', s: '#142e44', e: '#142e44', w: '#ffffff'
+    },
+    blastoise: {
+      u: '#3e8ac2', b: '#f2d398', k: '#6b5438', c: '#ff9aa8', m: '#5b6673', s: '#10283d', e: '#10283d', w: '#ffffff'
+    },
+    espeon: {
+      n: '#b58adf', b: '#ead7ff', c: '#e78fb8', a: '#7d58a7', s: '#332047', e: '#332047', w: '#ffffff', m: '#d946ef'
+    },
+    umbreon: {
+      n: '#2a2f3a', b: '#f4d35e', c: '#f59e0b', a: '#111827', s: '#0b1020', e: '#0b1020', w: '#ffffff'
     }
   };
 
@@ -163,7 +298,15 @@
     bulbasaur: [4, 5, 8, 9],
     charmander: [4, 5, 6],
     squirtle: [4, 5],
-    eevee: [4, 5, 10, 11]
+    eevee: [4, 5, 10, 11],
+    ivysaur: [4, 5, 8, 9],
+    venusaur: [4, 5, 8, 9],
+    charmeleon: [4, 5, 6],
+    charizard: [4, 5, 8, 9],
+    wartortle: [4, 5],
+    blastoise: [4, 5, 8, 9],
+    espeon: [4, 5, 10, 11],
+    umbreon: [4, 5, 10, 11]
   };
 
   const STAGE_NAMES = {
@@ -171,21 +314,51 @@
     pikachu: 'Pikachu',
     raichu: 'Raichu',
     bulbasaur: 'Bulbasaur',
+    ivysaur: 'Ivysaur',
+    venusaur: 'Venusaur',
     charmander: 'Charmander',
+    charmeleon: 'Charmeleon',
+    charizard: 'Charizard',
     squirtle: 'Squirtle',
-    eevee: 'Eevee'
+    wartortle: 'Wartortle',
+    blastoise: 'Blastoise',
+    eevee: 'Eevee',
+    espeon: 'Espeon',
+    umbreon: 'Umbreon'
   };
 
+  const COMPANION_CHAINS = {
+    pikachu: ['pichu', 'pikachu', 'raichu'],
+    bulbasaur: ['bulbasaur', 'ivysaur', 'venusaur'],
+    charmander: ['charmander', 'charmeleon', 'charizard'],
+    squirtle: ['squirtle', 'wartortle', 'blastoise'],
+    eevee: ['eevee', 'espeon', 'umbreon']
+  };
+  const FINAL_FORMS = new Set(Object.values(COMPANION_CHAINS).map(chain => chain[2]));
+
+  function getCompanionChain(partner = 'pikachu') {
+    return COMPANION_CHAINS[partner] || COMPANION_CHAINS.pikachu;
+  }
+
   function getEvoStage(todayFocusMs) {
+    return getCompanionChain('pikachu')[getEvoIndex(todayFocusMs)];
+  }
+
+  function getEvoIndex(todayFocusMs) {
     const h = (todayFocusMs || 0) / 3600000;
-    if (h >= 10) return 'raichu';
-    if (h >= 3)  return 'pikachu';
-    return 'pichu';
+    if (h >= 10) return 2;
+    if (h >= 3) return 1;
+    return 0;
   }
 
   function getCompanionForm(t = {}) {
     const partner = t.partnerPokemon || 'pikachu';
-    return partner === 'pikachu' ? getEvoStage(t.todayFocusMs || 0) : partner;
+    const chain = getCompanionChain(partner);
+    return chain[getEvoIndex(t.todayFocusMs || 0)] || chain[0];
+  }
+
+  function getEyeMaskColor(palette = {}) {
+    return palette.y || palette.b || palette.g || palette.o || palette.u || palette.n || '#ffffff';
   }
 
   function drawPixelMascot(canvas, form, eyeState = 'open') {
@@ -209,7 +382,7 @@
         
         if (eyeState === 'blink') {
           if (char === 'e' || char === 'w') {
-            color = palette.y;
+            color = getEyeMaskColor(palette);
           }
           const cols = EYE_COLS[form] || EYE_COLS.pikachu;
           if (r === 6 && cols.includes(c)) {
@@ -217,7 +390,7 @@
           }
         } else if (eyeState === 'happy') {
           if (char === 'e' || char === 'w') {
-            color = palette.y;
+            color = getEyeMaskColor(palette);
           }
           if (form === 'pichu') {
             if ((r === 5 && (c === 5 || c === 10)) || (r === 6 && (c === 4 || c === 6 || c === 9 || c === 11))) {
@@ -321,7 +494,7 @@
   const evoRing = document.getElementById('evo-ring');
 
   let state = 'idle';
-  let currentStage = 'pikachu'; // pichu | pikachu | raichu
+  let currentStage = 'pikachu';
   let currentPartner = 'pikachu';
   let idleBack = null;
   let lastActivity = Date.now();
@@ -343,9 +516,9 @@
       canvas.className = 'is-sleeping';
     } else if (state === 'celebrate') {
       eyeState = 'happy';
-      canvas.className = (activeForm === 'raichu') ? 'is-charged' : '';
+      canvas.className = FINAL_FORMS.has(activeForm) ? 'is-charged' : '';
     } else {
-      canvas.className = (activeForm === 'raichu') ? 'is-charged' : '';
+      canvas.className = FINAL_FORMS.has(activeForm) ? 'is-charged' : '';
     }
     
     drawPixelMascot(canvas, activeForm, eyeState);
@@ -417,7 +590,7 @@
   }
 
   function setStage(stage, animate=false) {
-    currentStage = stage;
+    currentStage = PIXEL_GRIDS[stage] ? stage : getCompanionChain(currentPartner)[0];
     if (animate) {
       playEvoAnimation(stage);
     } else {
@@ -431,8 +604,8 @@
     wrap.style.animation = 'evoFlash 0.4s ease-in-out 5, evoPulse 0.4s ease-in-out 5';
     evoRing.style.display = 'block';
     evoRing.style.animation = 'evoRing 0.6s ease-out 4';
-    const dispName = STAGE_NAMES[newStage] || 'Pikachu';
-    showBubble(newStage === 'pikachu' ? 'Pikachu powered up after 3h focus!' : 'Pikachu hit 10h focus mode!', 5000);
+    const dispName = STAGE_NAMES[newStage] || 'Companion';
+    showBubble(dispName + ' evolved!', 5000);
     setTimeout(() => {
       setSprite(newStage);
       wrap.style.animation = 'pFloat 3.6s ease-in-out infinite';
@@ -635,6 +808,95 @@
       .join(' ');
   }
 
+  function localDateKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function isVisibleElement(el) {
+    if (!el || typeof el.getBoundingClientRect !== 'function') return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function getAcceptedStatusNode() {
+    if (!window.location.hostname.includes('leetcode.com')) return null;
+    const nodes = document.querySelectorAll('[data-e2e-locator], [data-cy], [class*="green"], [class*="success"], span, div');
+    for (const el of nodes) {
+      if (!isVisibleElement(el)) continue;
+      const text = String(el.textContent || '').trim();
+      if (text !== 'Accepted') continue;
+      const className = String(el.className || '').toLowerCase();
+      const context = String((el.closest('[data-e2e-locator], [data-cy], [class*="result"], [class*="submission"], [class*="console"], [class*="success"], [class*="green"]') || el.parentElement || el).textContent || '').slice(0, 600);
+      if (className.includes('green') || className.includes('success') || /runtime|memory|beats|submitted/i.test(context)) {
+        return el;
+      }
+    }
+    return null;
+  }
+
+  function setupLeetCodeSolvedWatcher() {
+    if (!window.location.hostname.includes('leetcode.com')) return;
+
+    let lastSubmitAt = Number(sessionStorage.getItem('pikadex:last-leetcode-submit-at') || 0);
+    let checkTimer = null;
+
+    const markSubmitIntent = () => {
+      lastSubmitAt = Date.now();
+      sessionStorage.setItem('pikadex:last-leetcode-submit-at', String(lastSubmitAt));
+      scheduleAcceptedCheck(900);
+    };
+
+    const reportAcceptedIfReady = () => {
+      const problem = getLeetCodeProblem();
+      if (!problem) return;
+      const trustedWindow = Date.now() - lastSubmitAt < 10 * 60 * 1000;
+      const trustedSubmissionPage = /\/submissions\/(?:detail\/)?\d+/.test(window.location.pathname);
+      if (!trustedWindow && !trustedSubmissionPage) return;
+      if (!getAcceptedStatusNode()) return;
+
+      const reportKey = `pikadex:lc-accepted:${localDateKey()}:${problem}`;
+      if (sessionStorage.getItem(reportKey)) return;
+
+      safeSendMessage({
+        type: 'LEETCODE_SOLVED',
+        problem,
+        url: window.location.href,
+        acceptedAt: Date.now()
+      }, res => {
+        if (res?.ok) sessionStorage.setItem(reportKey, '1');
+      });
+    };
+
+    function scheduleAcceptedCheck(delay = 500) {
+      clearTimeout(checkTimer);
+      checkTimer = setTimeout(reportAcceptedIfReady, delay);
+    }
+
+    document.addEventListener('click', event => {
+      const target = event.target;
+      const button = target?.closest?.('button, [role="button"]');
+      if (!button) return;
+      const label = String(button.textContent || button.getAttribute('aria-label') || '').trim().toLowerCase();
+      if (/\bsubmit\b/.test(label)) markSubmitIntent();
+    }, true);
+
+    document.addEventListener('keydown', event => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && getLeetCodeProblem()) {
+        markSubmitIntent();
+      }
+    }, true);
+
+    const observer = new MutationObserver(() => scheduleAcceptedCheck());
+    observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    setInterval(reportAcceptedIfReady, 2500);
+  }
+
+  setupLeetCodeSolvedWatcher();
+
   function updateActivityLabel({ ytInfo, githubRepo, leetcodeProblem, isUserActive }) {
     if (!activityEl) return;
     if (!isUserActive) {
@@ -706,7 +968,11 @@
         if (msg.type==='PIKA_WARN')      setState('warn', msg.text||'Focus!', 3000);
         if (msg.type==='PIKA_XP')        showXP(msg.xp||0);
         if (msg.type==='PIKA_WAVE')      setState('idle', msg.text||'Hey!', 3000);
-        if (msg.type==='PIKA_EVOLVE' && currentPartner === 'pikachu') { setStage(msg.stage, true); setState('celebrate', msg.text, 5000); }
+        if (msg.type==='PIKA_EVOLVE') {
+          if (msg.partner) currentPartner = msg.partner;
+          if (msg.stage) setStage(msg.stage, true);
+          showBubble(msg.text || ((STAGE_NAMES[msg.stage] || 'Companion') + ' evolved!'), 5000);
+        }
       });
     } catch (error) {
       extensionInvalidated = true;

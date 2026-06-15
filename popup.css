@@ -330,9 +330,35 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   image-rendering: pixelated;
 }
 
+.mascot-stage.evolving::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 2px solid rgba(244, 180, 0, 0.78);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: evoRingBurst 0.7s ease-out 2;
+}
+
+.mascot-stage.evolving .pixel-mascot {
+  animation: mascotFloat 2.4s ease-in-out infinite, mascotEvolveBurst 0.7s ease-in-out 2;
+  filter: drop-shadow(0 0 10px rgba(244, 180, 0, 0.45));
+}
+
 @keyframes mascotFloat {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-5px); }
+}
+
+@keyframes mascotEvolveBurst {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+  30% { transform: translateY(-7px) scale(1.22); opacity: 0.86; }
+  55% { transform: translateY(-3px) scale(0.92); opacity: 1; }
+}
+
+@keyframes evoRingBurst {
+  0% { opacity: 0.95; transform: scale(0.65); }
+  100% { opacity: 0; transform: scale(1.35); }
 }
 
 #mascot-canvas {

@@ -155,10 +155,14 @@ function renderFocusDeck(data) {
 
 // Evolution based on TODAY's focus hours
 function getEvo(todayFocusMs) {
-  const h = (todayFocusMs||0)/3600000;
-  if (h >= 10) return 'raichu';
-  if (h >= 3)  return 'pikachu';
-  return 'pichu';
+  return getCompanionChain('pikachu')[getEvoIndex(todayFocusMs)];
+}
+
+function getEvoIndex(todayFocusMs) {
+  const h = (todayFocusMs || 0) / 3600000;
+  if (h >= 10) return 2;
+  if (h >= 3) return 1;
+  return 0;
 }
 
 function empty(icon, title, sub) {
@@ -291,8 +295,119 @@ const PIXEL_GRIDS = {
     "..ss......ss....",
     "................",
     "................"
+  ],
+  ivysaur: [
+    "......sps.......",
+    ".....sppps......",
+    "....splllps.....",
+    "...slllllls.....",
+    "..sgggggggs.....",
+    ".sggwegwegss....",
+    ".sggegggegss....",
+    ".sgggcggcggs....",
+    "..sgggggggs.....",
+    "...sggbggs......",
+    "..sggbbbggs.....",
+    ".sgggggggggs....",
+    ".sggsggggsgs....",
+    "..ss....ss......",
+    "................",
+    "................"
+  ],
+  venusaur: [
+    "....spppppps....",
+    "...spllllllps...",
+    "..spllpppllps...",
+    "..slllllllls....",
+    ".sgggggggggs....",
+    ".sggwegwegss....",
+    ".sggegggegss....",
+    ".sgggcggcggs....",
+    ".sgggggggggs....",
+    "..sgggbgggs.....",
+    ".sgggbbbbggs....",
+    "sgggggggggggs...",
+    "sggsggggggsgs...",
+    ".ss........ss...",
+    "................",
+    "................"
+  ],
+  charmeleon: [
+    "............s...",
+    "...........sfys.",
+    "..........sfyys.",
+    "....ssss..sys...",
+    "...srrrsssys....",
+    "..srrwrrrs......",
+    "..srreerrrs.....",
+    "..srrcrrrrs.....",
+    "...srrrrrs......",
+    "...srrbbbs......",
+    "..srrbbbbss.....",
+    ".srrrrrrrrs.....",
+    ".srrrsrrrs......",
+    "..ss...ss.......",
+    "................",
+    "................"
+  ],
+  charizard: [
+    "...s......s.....",
+    "..srs....srs....",
+    ".srrs..srrrs....",
+    ".srrrrssrrrrs...",
+    "..srrrrrrrrs....",
+    "..srrwrrrwrs....",
+    "..srreerrers....",
+    "...srrcrrrs.....",
+    "...srrrrrs..s...",
+    "..srrbbbrrssfs..",
+    ".srrrrrrrrsyys..",
+    ".srrrsrrrs.sys..",
+    "..ss...ss..s....",
+    "................",
+    "................",
+    "................"
+  ],
+  wartortle: [
+    "...s........s...",
+    "..sws....sws....",
+    "...suuuus.......",
+    "..suuwuuus......",
+    "..suueuuus......",
+    "..suucuuus......",
+    "...suuuuss......",
+    "..skkkkkkus.....",
+    ".skkbbbbbks.....",
+    ".skkbbbbbkks....",
+    ".sukkkkkkuus....",
+    "..suuuuuuus.....",
+    "..suuussuus..s..",
+    "...ss...ss..ss..",
+    "................",
+    "................"
+  ],
+  blastoise: [
+    "..m........m....",
+    ".sms..ssss..sms.",
+    "..suuuuuus......",
+    ".suuwuuuwus.....",
+    ".suueuuueus.....",
+    ".suucuuucus.....",
+    "..suuuuuuss.....",
+    ".skkkkkkkkus....",
+    "skkbbbbbbbks....",
+    "skkbbbbbbbkk....",
+    "sukkkkkkkkuus...",
+    ".suuuuuuuuus....",
+    ".suuusssuuus....",
+    "..ss.....ss.....",
+    "................",
+    "................"
   ]
 };
+
+PIXEL_GRIDS.espeon = PIXEL_GRIDS.eevee;
+PIXEL_GRIDS.umbreon = PIXEL_GRIDS.eevee;
 
 const PIXEL_PALETTES = {
   pichu: {
@@ -315,6 +430,30 @@ const PIXEL_PALETTES = {
   },
   eevee: {
     n: '#9a633a', b: '#f4dfb3', c: '#d98b7c', a: '#6f4428', s: '#3a2416', e: '#3a2416', w: '#ffffff'
+  },
+  ivysaur: {
+    g: '#4fb88f', b: '#c1f0dc', l: '#3f8f50', p: '#d774c7', c: '#ec6f7f', d: '#2f6d3d', s: '#153827', e: '#153827', w: '#ffffff'
+  },
+  venusaur: {
+    g: '#3f9f78', b: '#d8f5e8', l: '#2f7d40', p: '#e86aa3', c: '#ec6f7f', d: '#275d37', s: '#102f22', e: '#102f22', w: '#ffffff'
+  },
+  charmeleon: {
+    r: '#dc4b2f', b: '#ffd08a', c: '#f08055', f: '#ff3528', y: '#ffd447', s: '#471b10', e: '#471b10', w: '#ffffff'
+  },
+  charizard: {
+    r: '#d95d24', b: '#ffe1a6', c: '#f08a42', f: '#ff3528', y: '#ffd447', s: '#3b170d', e: '#3b170d', w: '#ffffff'
+  },
+  wartortle: {
+    u: '#5da7de', b: '#fff0c2', k: '#7b6347', c: '#ff9aa8', s: '#142e44', e: '#142e44', w: '#ffffff'
+  },
+  blastoise: {
+    u: '#3e8ac2', b: '#f2d398', k: '#6b5438', c: '#ff9aa8', m: '#5b6673', s: '#10283d', e: '#10283d', w: '#ffffff'
+  },
+  espeon: {
+    n: '#b58adf', b: '#ead7ff', c: '#e78fb8', a: '#7d58a7', s: '#332047', e: '#332047', w: '#ffffff', m: '#d946ef'
+  },
+  umbreon: {
+    n: '#2a2f3a', b: '#f4d35e', c: '#f59e0b', a: '#111827', s: '#0b1020', e: '#0b1020', w: '#ffffff'
   }
 };
 
@@ -325,7 +464,15 @@ const EYE_COLS = {
   bulbasaur: [4, 5, 8, 9],
   charmander: [4, 5, 6],
   squirtle: [4, 5],
-  eevee: [4, 5, 10, 11]
+  eevee: [4, 5, 10, 11],
+  ivysaur: [4, 5, 8, 9],
+  venusaur: [4, 5, 8, 9],
+  charmeleon: [4, 5, 6],
+  charizard: [4, 5, 8, 9],
+  wartortle: [4, 5],
+  blastoise: [4, 5, 8, 9],
+  espeon: [4, 5, 10, 11],
+  umbreon: [4, 5, 10, 11]
 };
 
 const COMPANION_NAMES = {
@@ -333,14 +480,39 @@ const COMPANION_NAMES = {
   pikachu: 'Pikachu',
   raichu: 'Raichu',
   bulbasaur: 'Bulbasaur',
+  ivysaur: 'Ivysaur',
+  venusaur: 'Venusaur',
   charmander: 'Charmander',
+  charmeleon: 'Charmeleon',
+  charizard: 'Charizard',
   squirtle: 'Squirtle',
-  eevee: 'Eevee'
+  wartortle: 'Wartortle',
+  blastoise: 'Blastoise',
+  eevee: 'Eevee',
+  espeon: 'Espeon',
+  umbreon: 'Umbreon'
 };
+
+const COMPANION_CHAINS = {
+  pikachu: ['pichu', 'pikachu', 'raichu'],
+  bulbasaur: ['bulbasaur', 'ivysaur', 'venusaur'],
+  charmander: ['charmander', 'charmeleon', 'charizard'],
+  squirtle: ['squirtle', 'wartortle', 'blastoise'],
+  eevee: ['eevee', 'espeon', 'umbreon']
+};
+
+function getCompanionChain(partner = 'pikachu') {
+  return COMPANION_CHAINS[partner] || COMPANION_CHAINS.pikachu;
+}
 
 function getCompanionForm(t = {}) {
   const partner = t.partnerPokemon || 'pikachu';
-  return partner === 'pikachu' ? getEvo(t.todayFocusMs || 0) : partner;
+  const chain = getCompanionChain(partner);
+  return chain[getEvoIndex(t.todayFocusMs || 0)] || chain[0];
+}
+
+function getEyeMaskColor(palette = {}) {
+  return palette.y || palette.b || palette.g || palette.o || palette.u || palette.n || '#ffffff';
 }
 
 function drawPixelMascot(canvas, form, blinkOpen = true) {
@@ -364,7 +536,7 @@ function drawPixelMascot(canvas, form, blinkOpen = true) {
       
       if (!blinkOpen) {
         if (char === 'e' || char === 'w') {
-          color = palette.y;
+          color = getEyeMaskColor(palette);
         }
         const cols = EYE_COLS[form] || EYE_COLS.pikachu;
         if (r === 6 && cols.includes(c)) {
@@ -380,9 +552,11 @@ function drawPixelMascot(canvas, form, blinkOpen = true) {
 
 let _mascotBlinkOpen = true;
 let _mascotAnimHandle = null;
+let _renderedCompanionForm = null;
+let _mascotEvolutionTimer = null;
 
 function startMascotAnimation(form) {
-  if (_mascotAnimHandle) clearInterval(_mascotAnimHandle);
+  if (_mascotAnimHandle) clearTimeout(_mascotAnimHandle);
   
   const drawAll = () => {
     const canvas = document.getElementById('mascot-canvas');
@@ -390,24 +564,24 @@ function startMascotAnimation(form) {
     if (canvas) drawPixelMascot(canvas, form, _mascotBlinkOpen);
     if (obCanvas) drawPixelMascot(obCanvas, form, _mascotBlinkOpen);
   };
-  
-  let frameCount = 0;
-  _mascotAnimHandle = setInterval(() => {
-    frameCount++;
-    if (frameCount % 100 === 0) {
+
+  const scheduleBlink = () => {
+    _mascotAnimHandle = setTimeout(() => {
       _mascotBlinkOpen = false;
       drawAll();
       setTimeout(() => {
         _mascotBlinkOpen = true;
         drawAll();
-      }, 150);
-    }
-  }, 30);
-  
+        scheduleBlink();
+      }, 140);
+    }, 2800 + Math.random() * 2200);
+  };
+
   drawAll();
+  scheduleBlink();
 }
 
-function renderPartner(form) {
+function renderPartnerLegacy(form) {
   startMascotAnimation(form);
   
   const evoNames = { pichu: 'Pichu Stage', pikachu: 'Pikachu Stage', raichu: 'Raichu Stage ⚡' };
@@ -422,6 +596,37 @@ function renderPartner(form) {
 }
 
 // ── TABS ─────────────────────────────────────────────────────
+function renderPartner(form, options = {}) {
+  const normalizedForm = PIXEL_GRIDS[form] ? form : 'pikachu';
+  const shouldAnimate = Boolean(options.animate && _renderedCompanionForm && _renderedCompanionForm !== normalizedForm);
+  _renderedCompanionForm = normalizedForm;
+  startMascotAnimation(normalizedForm);
+
+  const metaEvo = document.getElementById('trainer-meta-evo');
+  if (metaEvo) metaEvo.textContent = COMPANION_NAMES[normalizedForm] || 'Companion';
+
+  const stage = document.getElementById('mascot-stage');
+  if (stage) {
+    stage.classList.remove(
+      'form-pichu', 'form-pikachu', 'form-raichu',
+      'form-bulbasaur', 'form-ivysaur', 'form-venusaur',
+      'form-charmander', 'form-charmeleon', 'form-charizard',
+      'form-squirtle', 'form-wartortle', 'form-blastoise',
+      'form-eevee', 'form-espeon', 'form-umbreon',
+      'evolving'
+    );
+    stage.classList.add('form-' + normalizedForm);
+    if (shouldAnimate) {
+      void stage.offsetWidth;
+      stage.classList.add('evolving');
+      clearTimeout(_mascotEvolutionTimer);
+      _mascotEvolutionTimer = setTimeout(() => {
+        stage.classList.remove('evolving');
+      }, 1400);
+    }
+  }
+}
+
 function showTab(id) {
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
@@ -477,20 +682,25 @@ function renderHeader(data) {
   const wins = batt.filter(b=>b.won).length;
   document.getElementById('ss-battles-won').textContent = wins;
 
-  const evo = getEvo(t.todayFocusMs||0);
-  const evoNames = {pichu:'Pichu',pikachu:'Pikachu',raichu:'Raichu'};
+  const evoIndex = getEvoIndex(t.todayFocusMs || 0);
+  const chain = getCompanionChain(t.partnerPokemon || 'pikachu');
   const companion = getCompanionForm(t);
   const levelEl = document.getElementById('t-level');
-  if (levelEl) levelEl.textContent = 'Level '+(t.level||1)+' - '+(COMPANION_NAMES[companion] || evoNames[evo] || 'Companion');
-  renderPartner(companion);
+  if (levelEl) levelEl.textContent = 'Level '+(t.level||1)+' - '+(COMPANION_NAMES[companion] || 'Companion');
+  renderPartner(companion, { animate: true });
 
   // Update evo strip
-  ['pichu','pikachu','raichu'].forEach(id => {
-    const el = document.getElementById('en-'+id);
+  ['en-pichu','en-pikachu','en-raichu'].forEach((id, index) => {
+    const el = document.getElementById(id);
     if (el) {
       el.classList.remove('active','dim');
+      const form = chain[index] || chain[0];
+      const nameEl = el.querySelector('.evo-stage-name');
+      const reqEl = el.querySelector('.evo-stage-req');
       const checkEl = el.querySelector('.evo-check');
-      if (id===evo) {
+      if (nameEl) nameEl.textContent = COMPANION_NAMES[form] || 'Companion';
+      if (reqEl) reqEl.textContent = index === 0 ? 'Default' : index === 1 ? '3h focus' : '10h focus';
+      if (index === evoIndex) {
         el.classList.add('active');
         if (checkEl) checkEl.style.display='block';
       } else {
@@ -1265,10 +1475,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     partnerInput.title = 'Choose your companion.';
     partnerInput.innerHTML = [
       ['pikachu', 'Pikachu family'],
-      ['bulbasaur', 'Bulbasaur'],
-      ['charmander', 'Charmander'],
-      ['squirtle', 'Squirtle'],
-      ['eevee', 'Eevee']
+      ['bulbasaur', 'Bulbasaur family'],
+      ['charmander', 'Charmander family'],
+      ['squirtle', 'Squirtle family'],
+      ['eevee', 'Eevee family']
     ].map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
   }
 
